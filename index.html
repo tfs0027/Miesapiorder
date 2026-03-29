@@ -240,7 +240,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="st-sub" id="st-sub">Harap tunggu</div>
     <div class="timeline" id="st-timeline"></div>
   </div>
-  <button class="btn-order" id="btn-back" style="background:var(--dark)">← Pesan Lagi</button>
+  <button class="btn-order" id="btn-back" style="background:var(--dark);display:none">🛍️ Pesan Lagi</button>
 </div>
 
 <div class="modal-backdrop" id="backdrop"></div>
@@ -310,6 +310,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="tot-box">
       <div class="tot-row"><span>Subtotal</span><span id="tot-sub">Rp 0</span></div>
       <div class="tot-row"><span>Ongkos Kirim</span><span id="tot-ongkir">Rp 0</span></div>
+      <div class="tot-row" id="tot-svc-row" style="display:none"><span id="tot-svc-nm">Biaya Layanan</span><span id="tot-svc">Rp 0</span></div>
       <div class="tot-row grand"><span>Total</span><span id="tot-total">Rp 0</span></div>
     </div>
     <button class="btn-order" id="btn-order">Buat Pesanan</button>
@@ -531,7 +532,7 @@ async function loadRestaurant(){
 async function loadMenus(){
   var res=await _sb.from('menus').select('*').eq('restaurant_id',RESTAURANT_ID);
   if(res.error) throw res.error;
-  MENUS=res.data||[];
+  MENUS=(res.data||[]).sort(function(a,b){return (a.urutan||0)-(b.urutan||0);});
   var cats=['Semua'];
   MENUS.forEach(function(m){ var c=m.kategori||m.cat||'Menu'; if(cats.indexOf(c)<0) cats.push(c); });
   var bar=g('cat-bar');
@@ -556,7 +557,9 @@ function renderGrid(cat){
     card.className='menu-card'+(isOut?' out':'');
     var qty=getQty(m.id);
     card.innerHTML=
-      (m.foto_url?'<img class="menu-img" src="'+m.foto_url+'" loading="lazy" onerror="this.parentNode.querySelector(\'.menu-emoji\').style.display=\'flex\';this.remove();">':'')+'<div class="menu-emoji" style="'+(m.foto_url?'display:none':'')+'">'+(m.emoji||'🍽️')+'</div>'+
+      (m.foto_url
+        ? '<img class="menu-img" src="'+m.foto_url+'" loading="lazy" style="width:calc(100% + 0px);height:90px;object-fit:cover;border-radius:var(--radius) var(--radius) 0 0;display:block">'
+        : '<div class="menu-emoji">'+(m.emoji||'🍽️')+'</div>')+
       (isOut?'<div class="menu-out-badge">Habis</div>':'')+
       '<div class="menu-body"><div class="menu-cat">'+(m.kategori||m.cat||'Menu')+'</div><div class="menu-name">'+m.nama+'</div><div class="menu-price">'+fmt(m.harga)+'</div></div>'+
       (!isOut?'<div class="card-qty'+(qty>0?' show':'')+'"><button class="cq-btn cq-minus">−</button><span class="cq-num">'+qty+'</span><button class="cq-btn cq-plus">+</button></div><button class="btn-add" style="'+(qty>0?'display:none':'')+'">+</button>':'');
@@ -612,7 +615,19 @@ function updateBadge(){
     bar.classList.remove('show');
   }
 }
-function updateTotals(){ var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0); g('tot-sub').textContent=fmt(sub); g('tot-ongkir').textContent=fmt(ONGKIR); g('tot-total').textContent=fmt(sub+ONGKIR); }
+function updateTotals(){
+  var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0);
+  var svc=window._RESTO&&window._RESTO.cfg&&window._RESTO.cfg.enableService
+    ? Math.round(sub*(window._RESTO.cfg.service||0)/100) : 0;
+  var svcNm=window._RESTO&&window._RESTO.cfg?window._RESTO.cfg.serviceNama||'':'Biaya Layanan';
+  var total=sub+ONGKIR+svc;
+  g('tot-sub').textContent=fmt(sub);
+  g('tot-ongkir').textContent=fmt(ONGKIR);
+  var svcRow=g('tot-svc-row'); if(svcRow) svcRow.style.display=svc>0?'':'none';
+  var svcEl=g('tot-svc'); if(svcEl) svcEl.textContent=fmt(svc);
+  var svcNmEl=g('tot-svc-nm'); if(svcNmEl) svcNmEl.textContent=svcNm;
+  g('tot-total').textContent=fmt(total);
+}
 
 /* CART OPEN/CLOSE */
 g('cart-open-btn').addEventListener('click',openCart);
@@ -727,17 +742,41 @@ async function showStatus(code,orderId){
   if(orderId){loadLog(orderId);subscribeStatus(orderId);}
 }
 
-function updateStatusUI(s){ var i=SI[s]||SI.pending; g('st-icon').textContent=i.icon; g('st-title').textContent=i.title; g('st-sub').textContent=i.sub; }
+function updateStatusUI(s){
+  var i=SI[s]||SI.pending;
+  g('st-icon').textContent=i.icon;
+  g('st-title').textContent=i.title;
+  g('st-sub').textContent=i.sub;
+  updateBackBtn(s);
+}
 
 async function loadLog(orderId){ var res=await _sb.from('order_status_log').select('*').eq('order_id',orderId).order('created_at'); if(res.data)renderTimeline(res.data); }
 
-function renderTimeline(logs){ var last=logs.length?logs[logs.length-1].status:'pending', ci=STEPS.indexOf(last), el=g('st-timeline'); el.innerHTML=STEPS.map(function(s,i){ var log=logs.find(function(l){return l.status===s;}), time=log?new Date(log.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}):'', cls=i<ci?'done':i===ci?'cur':'idle'; return '<div class="tl-row"><div class="tl-dot '+cls+'">'+(i<ci?'✓':i===ci?'●':'')+'</div><div><div class="tl-label" style="color:'+(i<=ci?'var(--dark)':'var(--txt3)')+'">'+SLABELS[s]+'</div>'+(time?'<div class="tl-time">'+time+(log&&log.keterangan?' — '+log.keterangan:'')+'</div>':'')+'</div></div>'; }).join(''); }
+function renderTimeline(logs){ var last=logs.length?logs[logs.length-1].status:'pending', ci=STEPS.indexOf(last), el=g('st-timeline'); el.innerHTML=STEPS.map(function(s,i){ var log=logs.find(function(l){return l.status===s;}), time=log?new Date(log.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}):'', cls=i<ci?'done':i===ci?'cur':'idle'; return '<div class="tl-row"><div class="tl-dot '+cls+'">'+(i<ci?'✓':i===ci?'●':'')+'</div><div><div class="tl-label" style="color:'+(i<=ci?'var(--dark)':'var(--txt3)')+'">'+SLABELS[s]+'</div>'+(time?'<div class="tl-time">'+time+(log&&log.keterangan?' — '+log.keterangan:'')+'</div>':'')+(ket?'<div style="font-size:11px;background:#FCEBEB;color:#A32D2D;border-radius:6px;padding:4px 8px;margin-top:3px">'+ket+'</div>':'')+'</div></div>'; }).join(''); }
 
 function subscribeStatus(orderId){ if(_sub)_sb.removeChannel(_sub); _sub=_sb.channel('s_'+orderId).on('postgres_changes',{event:'INSERT',schema:'public',table:'order_status_log',filter:'order_id=eq.'+orderId},function(p){updateStatusUI(p.new.status);loadLog(orderId);toast((SI[p.new.status]||{}).title||'Status diperbarui');}).subscribe(); }
 
 g('cart-bar-btn').addEventListener('click',openCart);
 
-g('btn-back').addEventListener('click',function(){ history.pushState({},'',location.pathname); g('status-page').classList.remove('active'); g('main-header').style.display='block'; g('menu-page').style.display='block'; if(_sub){_sb.removeChannel(_sub);_sub=null;} });
+g('btn-back').addEventListener('click',function(){
+  history.pushState({},'',location.pathname);
+  g('status-page').classList.remove('active');
+  g('main-header').style.display='block';
+  g('menu-page').style.display='block';
+  if(_sub){_sb.removeChannel(_sub);_sub=null;}
+});
+
+// Show 'Pesan Lagi' only for terminal statuses
+function updateBackBtn(status){
+  var btn=g('btn-back');
+  if(!btn) return;
+  if(['delivered','cancelled'].includes(status)){
+    btn.style.display='block';
+    btn.textContent='🛍️ Pesan Lagi';
+  } else {
+    btn.style.display='none';
+  }
+}
 
 
 // ═══════════════════════════════
