@@ -147,12 +147,34 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .qris-merchant{font-size:13px;font-weight:700;color:var(--dark);margin-bottom:2px}
 .qris-amount{font-size:16px;font-weight:800;color:var(--accent);margin-bottom:8px}
 .qris-note{font-size:11px;color:var(--txt2);line-height:1.5}
-.upload-proof{border:1.5px dashed var(--brd);border-radius:12px;padding:14px;text-align:center;cursor:pointer;display:none;margin-bottom:10px;transition:all .15s}
+.upload-proof{border:1.5px dashed var(--brd);border-radius:12px;padding:14px;text-align:center;cursor:pointer;display:none;margin-bottom:10px;transition:all .15s;flex-direction:column;align-items:center}
 .upload-proof:hover{border-color:var(--accent);background:#FFF8F5}
 .upload-proof input{display:none}
 .upload-proof-label{font-size:12px;font-weight:600;color:var(--txt2);display:block;margin-top:6px}
 .upload-proof-preview{max-width:100%;max-height:150px;border-radius:8px;margin-top:8px;display:none}
 .proof-uploaded{font-size:11px;color:var(--green);font-weight:600;margin-top:4px;display:none}
+
+.var-modal-bg{position:fixed;inset:0;background:rgba(26,18,8,.55);z-index:200;display:none}
+.var-modal-bg.open{display:block}
+.var-modal{position:fixed;bottom:0;left:0;right:0;max-width:680px;margin:0 auto;background:var(--bg2);border-radius:24px 24px 0 0;z-index:201;max-height:80vh;overflow-y:auto;transform:translateY(100%);transition:transform .3s}
+.var-modal.open{transform:translateY(0)}
+.var-modal-hd{padding:16px 20px 12px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2)}
+.var-modal-title{font-size:15px;font-weight:800;color:var(--dark)}
+.var-modal-price{font-size:14px;font-weight:700;color:var(--accent)}
+.var-modal-body{padding:16px 20px}
+.var-group{margin-bottom:16px}
+.var-group-title{font-size:12px;font-weight:700;color:var(--dark);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.var-required{font-size:9px;background:#FEE2E2;color:#991B1B;padding:2px 6px;border-radius:10px;font-weight:700}
+.var-optional{font-size:9px;background:var(--bg);color:var(--txt3);padding:2px 6px;border-radius:10px}
+.var-choices{display:flex;flex-wrap:wrap;gap:7px}
+.var-chip{padding:7px 14px;border:1.5px solid var(--brd);border-radius:50px;font-size:12px;font-weight:600;cursor:pointer;color:var(--txt2);transition:all .15s}
+.var-chip.selected{background:var(--accent);border-color:var(--accent);color:#fff}
+.var-qty-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--brd);margin-top:8px}
+.var-qty-ctrl{display:flex;align-items:center;gap:12px}
+.var-qty-btn{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--brd);background:var(--bg2);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.var-qty-num{font-size:16px;font-weight:800;min-width:24px;text-align:center}
+.btn-add-to-cart{flex:1;margin-left:12px;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:800;font-family:inherit;cursor:pointer}
+.btn-add-to-cart:disabled{opacity:.5}
 </style>
 </head>
 <body>
@@ -178,6 +200,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
+<div id="warung-closed-banner" style="display:none;background:#FEE2E2;border-bottom:3px solid #E24B4A;padding:14px 20px;text-align:center">
+  <div style="font-size:20px;margin-bottom:6px">🔒</div>
+  <div style="font-size:15px;font-weight:800;color:#991B1B">Warung Sedang Tutup</div>
+  <div style="font-size:12px;color:#7F1D1D;margin-top:4px" id="closed-msg">Maaf, kami sedang tidak menerima pesanan.</div>
+</div>
+<div id="warung-open-banner" style="display:none;background:#EBF7F0;border-bottom:2px solid #A7EDD3;padding:8px 20px;text-align:center">
+  <span style="font-size:12px;font-weight:600;color:#1A6040">🟢 Warung Buka — Siap menerima pesanan!</span>
+</div>
 <div class="main" id="menu-page" style="display:none">
   <div class="hero">
     <div class="hero-label">Pesan Online</div>
@@ -286,6 +316,29 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
 <div class="toast" id="toast"></div>
 
+<!-- Varian Modal -->
+<div class="var-modal-bg" id="var-bg"></div>
+<div class="var-modal" id="var-modal">
+  <div class="var-modal-hd">
+    <div>
+      <div class="var-modal-title" id="var-menu-name">Menu</div>
+      <div class="var-modal-price" id="var-menu-price">Rp 0</div>
+    </div>
+    <button class="btn-close" id="var-close-btn">✕</button>
+  </div>
+  <div class="var-modal-body">
+    <div id="var-opts-list"></div>
+    <div class="var-qty-row">
+      <div class="var-qty-ctrl">
+        <button class="var-qty-btn" id="var-minus">−</button>
+        <span class="var-qty-num" id="var-qty">1</span>
+        <button class="var-qty-btn" id="var-plus">+</button>
+      </div>
+      <button class="btn-add-to-cart" id="btn-add-to-cart">+ Tambah ke Keranjang</button>
+    </div>
+  </div>
+</div>
+
 <div class="cart-bar" id="cart-bar">
   <div class="cart-bar-left">
     <div class="cart-bar-count" id="cb-count">0 item</div>
@@ -368,8 +421,6 @@ function setPay(m){
   g('qris-box').style.display=m==='qris'?'block':'none';
   g('transfer-box').style.display=m==='transfer'?'block':'none';
   g('upload-proof-box').style.display=(m==='qris'||m==='transfer')?'flex':'none';
-  g('upload-proof-box').style.flexDirection='column';
-  g('upload-proof-box').style.alignItems='center';
   // Load QRIS/Transfer info from restaurant config
   if(m==='qris' && window._RESTO){
     var cfg=window._RESTO.cfg||{};
@@ -414,11 +465,22 @@ async function loadRestaurant(){
   if(r.ongkir_per_km) ONGKIR_PER_KM=r.ongkir_per_km;
   if(r.lat) WARUNG_LAT=r.lat;
   if(r.lng) WARUNG_LNG=r.lng;
-  // Check open/closed
+  // Check open/closed - show banner
   var cfg=r.cfg||{};
-  if(cfg.isOpen===false){
-    g('menu-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:48px 20px"><div style="font-size:48px;margin-bottom:12px">🔒</div><div style="font-size:16px;font-weight:800;color:var(--dark)">Warung Sedang Tutup</div><div style="font-size:13px;color:var(--txt2);margin-top:6px">'+(cfg.closedNote||'Maaf, kami sedang tidak menerima pesanan. Silakan coba lagi nanti.')+'</div></div>';
-    g('cat-bar').style.display='none';
+  window._WARUNG_OPEN = cfg.isOpen!==false;
+  var closedBanner=g('warung-closed-banner'), openBanner=g('warung-open-banner');
+  if(!window._WARUNG_OPEN){
+    if(closedBanner){ closedBanner.style.display='block'; }
+    if(openBanner){ openBanner.style.display='none'; }
+    var msg=g('closed-msg'); if(msg) msg.textContent=cfg.closedNote||'Maaf, kami sedang tidak menerima pesanan.';
+    // Disable order button
+    var orderBtn=g('btn-order');
+    if(orderBtn){ orderBtn.disabled=true; orderBtn.textContent='Warung Sedang Tutup'; orderBtn.style.background='var(--txt3)'; }
+    var cartBarBtn=g('cart-bar-btn');
+    if(cartBarBtn){ cartBarBtn.textContent='Warung Tutup'; cartBarBtn.style.background='#888'; cartBarBtn.disabled=true; }
+  } else {
+    if(openBanner){ openBanner.style.display='block'; }
+    if(closedBanner){ closedBanner.style.display='none'; }
   }
 }
 
@@ -585,7 +647,7 @@ async function submitOrder(){
     var code='ORD-'+Date.now().toString(36).toUpperCase();
     var aRes=await _sb.from('delivery_addresses').insert({nama_penerima:nama,alamat_lengkap:alamat||(USER_LAT.toFixed(5)+', '+USER_LNG.toFixed(5)),lat:USER_LAT,lng:USER_LNG,catatan:g('inp-catatan').value.trim()}).select('id');
     if(aRes.error) throw aRes.error;
-    var oRes=await _sb.from('online_orders').insert({restaurant_id:RESTAURANT_ID,delivery_addr_id:aRes.data[0].id,order_code:code,nama_pemesan:nama,hp_pemesan:hp,subtotal:sub,ongkir:ONGKIR,total:total,pay_method:PAY,pay_status:PAY==='cod'?'pending':'proof_submitted',bukti_bayar_url:PROOF_BASE64||null,status:'pending',items_snapshot:CART.map(function(c){return {menu_id:c.id,nama:c.nama,harga:c.harga,qty:c.qty,note:c.note||''};}),catatan:g('inp-catatan').value.trim()}).select('id');
+    var oRes=await _sb.from('online_orders').insert({restaurant_id:RESTAURANT_ID,delivery_addr_id:aRes.data[0].id,order_code:code,nama_pemesan:nama,hp_pemesan:hp,subtotal:sub,ongkir:ONGKIR,total:total,pay_method:PAY,pay_status:PAY==='cod'?'pending':'proof_submitted',bukti_bayar_url:PROOF_BASE64||null,status:'pending',items_snapshot:CART.map(function(c){return {menu_id:c.id,nama:c.nama+(c.varLabel?' ('+c.varLabel+')':''),harga:c.harga,qty:c.qty,note:c.note||'',varLabel:c.varLabel||''};}),catatan:g('inp-catatan').value.trim()}).select('id');
     if(oRes.error) throw oRes.error;
     await _sb.from('order_status_log').insert({order_id:oRes.data[0].id,status:'pending',keterangan:'Pesanan masuk, menunggu konfirmasi warung',by_role:'customer'});
     CART=[]; updateBadge(); closeCart();
@@ -624,6 +686,93 @@ function subscribeStatus(orderId){ if(_sub)_sb.removeChannel(_sub); _sub=_sb.cha
 g('cart-bar-btn').addEventListener('click',openCart);
 
 g('btn-back').addEventListener('click',function(){ history.pushState({},'',location.pathname); g('status-page').classList.remove('active'); g('main-header').style.display='block'; g('menu-page').style.display='block'; if(_sub){_sb.removeChannel(_sub);_sub=null;} });
+
+
+// ═══════════════════════════════
+// VARIAN MODAL
+// ═══════════════════════════════
+var _varMenu = null, _varQty = 1, _varSelections = {}, _varCallback = null;
+
+function openVarModal(menu, cb) {
+  _varMenu = menu; _varQty = 1; _varSelections = {}; _varCallback = cb||null;
+  g('var-menu-name').textContent = menu.nama;
+  g('var-menu-price').textContent = fmt(menu.harga);
+  g('var-qty').textContent = 1;
+  var opts = menu.opts || [];
+  var el = g('var-opts-list'); el.innerHTML = '';
+  opts.forEach(function(grp, gi) {
+    var div = document.createElement('div'); div.className = 'var-group';
+    div.innerHTML = '<div class="var-group-title">' + grp.label +
+      (grp.required||grp.wajib?'<span class="var-required">Wajib</span>':'<span class="var-optional">Opsional</span>') +
+      '</div><div class="var-choices" id="var-grp-'+gi+'"></div>';
+    el.appendChild(div);
+    var choicesEl = div.querySelector('#var-grp-'+gi);
+    var choices = grp.choices||grp.pilihan||[];
+    choices.forEach(function(ch, ci) {
+      var chip = document.createElement('div'); chip.className = 'var-chip';
+      // Parse extra price from choice label e.g. "Jumbo (+Rp 5.000)"
+      var extraMatch = ch.match(/\(\+Rp\s*([\d.,]+)\)/);
+      var extraPrice = extraMatch ? parseInt(extraMatch[1].replace(/[.,]/g,''))||0 : 0;
+      chip.textContent = ch;
+      chip.addEventListener('click', function() {
+        // Single select per group
+        choicesEl.querySelectorAll('.var-chip').forEach(function(c){c.classList.remove('selected');});
+        chip.classList.add('selected');
+        _varSelections[gi] = {label:ch, extra:extraPrice};
+        updateVarTotal();
+      });
+      choicesEl.appendChild(chip);
+    });
+  });
+  updateVarTotal();
+  g('var-bg').classList.add('open');
+  g('var-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function updateVarTotal() {
+  var extra = Object.values(_varSelections).reduce(function(a,v){return a+(v.extra||0);},0);
+  var price = (_varMenu?_varMenu.harga:0) + extra;
+  g('var-menu-price').textContent = fmt(price * _varQty);
+  var opts = _varMenu ? (_varMenu.opts||[]) : [];
+  var requiredMet = opts.filter(function(g){return g.required||g.wajib;}).every(function(g,i){return !!_varSelections[i];});
+  g('btn-add-to-cart').disabled = !requiredMet;
+}
+
+function closeVarModal() {
+  g('var-bg').classList.remove('open');
+  g('var-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+g('var-bg').addEventListener('click', closeVarModal);
+g('var-close-btn').addEventListener('click', closeVarModal);
+g('var-minus').addEventListener('click', function() { if(_varQty>1){_varQty--;g('var-qty').textContent=_varQty;updateVarTotal();} });
+g('var-plus').addEventListener('click', function() { _varQty++; g('var-qty').textContent=_varQty; updateVarTotal(); });
+g('btn-add-to-cart').addEventListener('click', function() {
+  if(!_varMenu) return;
+  var selLabels = Object.values(_varSelections).map(function(v){return v.label;}).filter(Boolean);
+  var extra = Object.values(_varSelections).reduce(function(a,v){return a+(v.extra||0);},0);
+  var totalPrice = _varMenu.harga + extra;
+  // Add as separate item for each qty with varian
+  for(var i=0; i<_varQty; i++){
+    var varKey = _varMenu.id + '_' + selLabels.join('_');
+    var ex = CART.find(function(c){return c.varKey===varKey;});
+    if(ex) ex.qty++;
+    else CART.push({
+      id: _varMenu.id, varKey: varKey,
+      nama: _varMenu.nama, harga: totalPrice,
+      emoji: _varMenu.emoji||'🍽️', foto_url: _varMenu.foto_url||'',
+      qty: 1, note: '',
+      varLabel: selLabels.join(', '),
+      extraPrice: extra
+    });
+  }
+  updateBadge(); updateTotals();
+  toast(_varMenu.nama + (selLabels.length?' ('+selLabels.join(', ')+')':'') + ' ditambahkan');
+  closeVarModal();
+  if(_varCallback) _varCallback();
+});
 
 init();
 </script>
