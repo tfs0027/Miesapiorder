@@ -147,7 +147,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .qris-merchant{font-size:13px;font-weight:700;color:var(--dark);margin-bottom:2px}
 .qris-amount{font-size:16px;font-weight:800;color:var(--accent);margin-bottom:8px}
 .qris-note{font-size:11px;color:var(--txt2);line-height:1.5}
-.upload-proof{border:1.5px dashed var(--brd);border-radius:12px;padding:14px;text-align:center;cursor:pointer;display:none;margin-bottom:10px;transition:all .15s;flex-direction:column;align-items:center}
+.upload-proof{border:1.5px dashed var(--brd);border-radius:12px;padding:14px;text-align:center;cursor:pointer;display:none;margin-bottom:10px;transition:all .15s}
 .upload-proof:hover{border-color:var(--accent);background:#FFF8F5}
 .upload-proof input{display:none}
 .upload-proof-label{font-size:12px;font-weight:600;color:var(--txt2);display:block;margin-top:6px}
@@ -286,8 +286,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     </div>
     <!-- QRIS Box -->
     <div class="qris-box" id="qris-box">
-      <img class="qris-static-img" id="qris-img" src="" alt="QRIS">
+      <img class="qris-static-img" id="qris-img" src="" alt="QRIS" style="display:none">
+      <div id="qris-placeholder" style="font-size:48px;margin:12px 0">📱</div>
       <div class="qris-merchant" id="qris-merchant">Warung</div>
+      <div class="qris-merchant" id="qris-merchant-name2" style="display:none"></div>
+      <div id="qris-id-el" style="font-size:11px;color:var(--txt2);margin-bottom:6px"></div>
       <div class="qris-note">Scan QR di atas dengan aplikasi e-wallet atau m-banking apapun</div>
     </div>
     <!-- Transfer info -->
@@ -295,14 +298,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div id="transfer-rekening" style="line-height:1.8"></div>
     </div>
     <!-- Upload bukti (QRIS & Transfer) -->
-    <label class="upload-proof" id="upload-proof-box">
+    <div class="upload-proof" id="upload-proof-box" onclick="g('proof-input').click()">
       <input type="file" id="proof-input" accept="image/*">
       <div style="font-size:24px">📷</div>
       <div class="upload-proof-label">Upload Bukti Pembayaran</div>
       <div class="upload-proof-label" style="font-size:10px;margin-top:2px">(Wajib sebelum order dikirim)</div>
       <img class="upload-proof-preview" id="proof-preview">
       <div class="proof-uploaded" id="proof-uploaded">✅ Bukti pembayaran terpilih</div>
-    </label>
+    </div>
     <div class="sec-title">📋 Ringkasan</div>
     <div class="tot-box">
       <div class="tot-row"><span>Subtotal</span><span id="tot-sub">Rp 0</span></div>
@@ -413,26 +416,66 @@ var PROOF_BASE64 = null;
 g('pay-qris').addEventListener('click',function(){ setPay('qris'); });
 g('pay-transfer').addEventListener('click',function(){setPay('transfer');});
 
-function setPay(m){
-  PAY=m;
-  g('pay-cod').classList.toggle('selected',m==='cod');
-  g('pay-qris').classList.toggle('selected',m==='qris');
-  g('pay-transfer').classList.toggle('selected',m==='transfer');
-  g('qris-box').style.display=m==='qris'?'block':'none';
-  g('transfer-box').style.display=m==='transfer'?'block':'none';
-  g('upload-proof-box').style.display=(m==='qris'||m==='transfer')?'flex':'none';
-  // Load QRIS/Transfer info from restaurant config
-  if(m==='qris' && window._RESTO){
-    var cfg=window._RESTO.cfg||{};
-    g('qris-merchant').textContent=window._RESTO.nama;
-    if(cfg.qrisImg) g('qris-img').src=cfg.qrisImg;
-    else { g('qris-img').alt='QRIS'; g('qris-img').style.display='none'; g('qris-box').innerHTML+='<div style="font-size:11px;color:var(--txt2);margin-top:6px">Gambar QRIS belum diupload di pengaturan warung</div>'; }
+function setPay(m) {
+  PAY = m;
+  ['pay-cod','pay-qris','pay-transfer'].forEach(function(id) {
+    var el = g(id); if (el) el.classList.toggle('selected', id === 'pay-'+m);
+  });
+  // Show/hide QRIS box
+  var qbox = g('qris-box');
+  if (qbox) qbox.style.display = m==='qris' ? 'block' : 'none';
+  // Show/hide Transfer box
+  var tbox = g('transfer-box');
+  if (tbox) tbox.style.display = m==='transfer' ? 'block' : 'none';
+  // Show/hide upload proof area (div, not label)
+  var upbox = g('upload-proof-box');
+  if (upbox) upbox.style.display = (m==='qris'||m==='transfer') ? 'block' : 'none';
+
+  // Populate QRIS info
+  if (m === 'qris') {
+    var cfg = window._RESTO ? (window._RESTO.cfg||{}) : {};
+    var merchant = g('qris-merchant');
+    if (merchant) merchant.textContent = cfg.qrisNama || (window._RESTO ? window._RESTO.nama : 'Warung');
+    var qrisId = g('qris-id-el');
+    if (qrisId) qrisId.textContent = cfg.qrisId ? 'ID: '+cfg.qrisId : '';
+    var qimg = g('qris-img');
+    var qph  = g('qris-placeholder');
+    if (cfg.qrisImg) {
+      if (qimg) { qimg.src = cfg.qrisImg; qimg.style.display = 'block'; }
+      if (qph)  qph.style.display = 'none';
+    } else {
+      if (qimg) qimg.style.display = 'none';
+      if (qph)  { qph.style.display = 'block'; qph.textContent = '📱'; }
+      var qboxEl = g('qris-box');
+      if (qboxEl && !qboxEl.querySelector('.qris-no-img')) {
+        var n = document.createElement('div');
+        n.className = 'qris-no-img';
+        n.style.cssText = 'font-size:11px;color:var(--txt2);margin-top:4px';
+        n.textContent = 'Gambar QRIS belum diatur — hubungi kasir untuk info pembayaran';
+        qboxEl.appendChild(n);
+      }
+    }
   }
-  if(m==='transfer' && window._RESTO){
-    var cfg=window._RESTO.cfg||{};
-    var banks=cfg.banks||[];
-    if(banks.length){ g('transfer-rekening').innerHTML='<b style="display:block;margin-bottom:6px">Transfer ke rekening:</b>'+banks.map(function(b){ return '<div>'+b.nama+': <b>'+b.norek+'</b>'+(b.an?' a.n. '+b.an:'')+'</div>'; }).join(''); }
-    else { g('transfer-rekening').textContent='Info rekening belum tersedia. Hubungi warung.'; }
+
+  // Populate Transfer info
+  if (m === 'transfer') {
+    var cfg2 = window._RESTO ? (window._RESTO.cfg||{}) : {};
+    var banks = cfg2.banks || [];
+    var rekEl = g('transfer-rekening');
+    if (rekEl) {
+      if (banks.length) {
+        rekEl.innerHTML = '<b style="display:block;margin-bottom:6px;color:var(--dark)">Transfer ke rekening:</b>' +
+          banks.map(function(b) {
+            return '<div style="padding:6px 0;border-bottom:1px solid var(--brd)">' +
+              '<span style="color:var(--txt2)">' + (b.nama||'Bank') + '</span><br>' +
+              '<b style="font-size:14px">' + (b.norek||'—') + '</b>' +
+              (b.an ? '<span style="color:var(--txt2)"> a.n. ' + b.an + '</span>' : '') +
+              '</div>';
+          }).join('');
+      } else {
+        rekEl.innerHTML = '<div style="color:var(--txt2);font-size:12px">Info rekening belum diatur.<br>Hubungi warung via WhatsApp.</div>';
+      }
+    }
   }
 }
 
@@ -444,7 +487,7 @@ g('proof-input').addEventListener('change',function(){
     PROOF_BASE64=e.target.result;
     var prev=g('proof-preview'); prev.src=PROOF_BASE64; prev.style.display='block';
     g('proof-uploaded').style.display='block';
-    g('upload-proof-box').querySelector('.upload-proof-label').style.display='none';
+    var lbl=g('upload-proof-box').querySelector('.upload-proof-label'); if(lbl) lbl.style.display='none';
   };
   reader.readAsDataURL(file);
 });
@@ -532,8 +575,17 @@ function renderGrid(cat){
         else{cardQty.classList.remove('show');addBtn.style.display='';}
         updateBadge(); updateTotals();
       }
-      addBtn.addEventListener('click',function(e){e.stopPropagation();addItem(menu);refreshCard();});
-      plusBtn.addEventListener('click',function(e){e.stopPropagation();addItem(menu);refreshCard();});
+      var hasOpts = menu.opts && Array.isArray(menu.opts) && menu.opts.length > 0;
+      addBtn.addEventListener('click',function(e){
+        e.stopPropagation();
+        if(hasOpts) openVarModal(menu, refreshCard);
+        else { addItem(menu); refreshCard(); }
+      });
+      plusBtn.addEventListener('click',function(e){
+        e.stopPropagation();
+        if(hasOpts) openVarModal(menu, refreshCard);
+        else { addItem(menu); refreshCard(); }
+      });
       minusBtn.addEventListener('click',function(e){e.stopPropagation();removeItem(menu.id);refreshCard();});
     }
     el.appendChild(card);
@@ -575,7 +627,9 @@ function renderCartItems(){
   CART.forEach(function(item,i){
     var div=document.createElement('div'); div.className='cart-item';
     div.innerHTML='<div class="ci-thumb">'+(item.foto_url?'<img src="'+item.foto_url+'">':item.emoji)+'</div>'+
-      '<div class="ci-info"><div class="ci-name">'+item.nama+'</div><div class="ci-price">'+fmt(item.harga)+' × '+item.qty+' = '+fmt(item.harga*item.qty)+'</div><input class="ci-note" placeholder="Catatan" value="'+(item.note||'')+'"></div>'+
+      '<div class="ci-info"><div class="ci-name">'+item.nama+'</div>'+
+      (item.varLabel?'<div style="font-size:10px;color:var(--accent);margin-bottom:2px">'+item.varLabel+'</div>':'')+
+      '<div class="ci-price">'+fmt(item.harga)+' × '+item.qty+' = '+fmt(item.harga*item.qty)+'</div><input class="ci-note" placeholder="Catatan" value="'+(item.note||'')+'"></div>'+
       '<div class="qty-ctrl"><button class="qty-btn">−</button><span class="qty-num">'+item.qty+'</span><button class="qty-btn">+</button></div>';
     div.querySelector('.ci-note').addEventListener('input',function(){CART[i].note=this.value;});
     var btns=div.querySelectorAll('.qty-btn');
@@ -703,7 +757,7 @@ function openVarModal(menu, cb) {
   opts.forEach(function(grp, gi) {
     var div = document.createElement('div'); div.className = 'var-group';
     div.innerHTML = '<div class="var-group-title">' + grp.label +
-      (grp.required||grp.wajib?'<span class="var-required">Wajib</span>':'<span class="var-optional">Opsional</span>') +
+      ((grp.required||grp.wajib)?'<span class="var-required">Wajib</span>':'<span class="var-optional">Opsional</span>') +
       '</div><div class="var-choices" id="var-grp-'+gi+'"></div>';
     el.appendChild(div);
     var choicesEl = div.querySelector('#var-grp-'+gi);
@@ -732,11 +786,17 @@ function openVarModal(menu, cb) {
 
 function updateVarTotal() {
   var extra = Object.values(_varSelections).reduce(function(a,v){return a+(v.extra||0);},0);
-  var price = (_varMenu?_varMenu.harga:0) + extra;
+  var price = (_varMenu ? _varMenu.harga : 0) + extra;
   g('var-menu-price').textContent = fmt(price * _varQty);
   var opts = _varMenu ? (_varMenu.opts||[]) : [];
-  var requiredMet = opts.filter(function(g){return g.required||g.wajib;}).every(function(g,i){return !!_varSelections[i];});
-  g('btn-add-to-cart').disabled = !requiredMet;
+  // Check each group by its original index (gi)
+  var allRequiredMet = true;
+  opts.forEach(function(grp, gi) {
+    if (grp.required || grp.wajib) {
+      if (!_varSelections[gi]) allRequiredMet = false;
+    }
+  });
+  g('btn-add-to-cart').disabled = !allRequiredMet;
 }
 
 function closeVarModal() {
