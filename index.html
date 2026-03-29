@@ -413,8 +413,9 @@ async function searchOrders(){
 /* ── PAYMENT: QRIS & Transfer proof ── */
 var PROOF_BASE64 = null;
 
+g('pay-cod').addEventListener('click',function(){ setPay('cod'); });
 g('pay-qris').addEventListener('click',function(){ setPay('qris'); });
-g('pay-transfer').addEventListener('click',function(){setPay('transfer');});
+g('pay-transfer').addEventListener('click',function(){ setPay('transfer'); });
 
 function setPay(m) {
   PAY = m;
@@ -681,10 +682,7 @@ g('btn-loc').addEventListener('click',function(){
   );
 });
 
-/* PAYMENT */
-g('pay-cod').addEventListener('click',function(){setPay('cod');});
-g('pay-transfer').addEventListener('click',function(){setPay('transfer');});
-function setPay(m){ PAY=m; g('pay-cod').classList.toggle('selected',m==='cod'); g('pay-transfer').classList.toggle('selected',m==='transfer'); g('transfer-note').style.display=m==='transfer'?'block':'none'; }
+
 
 /* SUBMIT */
 g('btn-order').addEventListener('click',submitOrder);
