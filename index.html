@@ -59,17 +59,17 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .btn-close{width:32px;height:32px;border-radius:50%;background:var(--bg);border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--txt2)}
 .cart-body{padding:0 20px 24px}
 .cart-empty{text-align:center;padding:32px;color:var(--txt3);font-size:13px}
-.cart-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--brd)}
-.ci-thumb{width:52px;height:52px;border-radius:10px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden}
+.cart-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--brd)}
+.ci-thumb{width:42px;height:42px;border-radius:8px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden}
 .ci-thumb img{width:100%;height:100%;object-fit:cover}
 .ci-info{flex:1;min-width:0}
-.ci-name{font-size:13px;font-weight:700;color:var(--dark);margin-bottom:2px}
-.ci-price{font-size:12px;font-weight:600;color:var(--accent);margin-bottom:5px}
-.ci-note{width:100%;font-size:11px;padding:5px 8px;border:1px solid var(--brd);border-radius:8px;font-family:inherit;color:var(--txt);background:var(--bg);outline:none}
+.ci-name{font-size:12px;font-weight:700;color:var(--dark);margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-price{font-size:11px;font-weight:600;color:var(--accent)}
+.ci-note{width:100%;font-size:10px;padding:3px 7px;border:1px solid var(--brd);border-radius:6px;font-family:inherit;color:var(--txt);background:var(--bg);outline:none;margin-top:3px}
 .ci-note:focus{border-color:var(--accent)}
-.qty-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.qty-btn{width:28px;height:28px;border-radius:50%;background:var(--bg);border:1.5px solid var(--brd);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txt)}
-.qty-num{font-size:14px;font-weight:700;min-width:20px;text-align:center}
+.qty-ctrl{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.qty-btn{width:24px;height:24px;border-radius:50%;background:var(--bg);border:1.5px solid var(--brd);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txt)}
+.qty-num{font-size:13px;font-weight:700;min-width:18px;text-align:center}
 .sec-title{font-size:14px;font-weight:800;color:var(--dark);margin:16px 0 10px}
 .form-lbl{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px}
 .form-group{margin-bottom:12px}
@@ -111,7 +111,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .tl-dot.idle{background:var(--bg);border:2px solid var(--brd)}
 .tl-label{font-size:13px;font-weight:700}
 .tl-time{font-size:11px;color:var(--txt2);margin-top:2px}
-.cart-bar{position:fixed;bottom:0;left:0;right:0;z-index:90;background:var(--accent);padding:14px 20px;display:none;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 -4px 20px rgba(26,18,8,.18)}
+.cart-bar{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:90;background:var(--accent);padding:12px 16px;display:none;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 8px 32px rgba(232,93,36,.45);width:calc(100% - 32px);max-width:640px;border-radius:18px}
 .cart-bar.show{display:flex}
 .cart-bar-left{display:flex;align-items:center;gap:10px}
 .cart-bar-count{background:rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700}
@@ -119,13 +119,40 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .cart-bar-total{font-size:15px;font-weight:800;color:#fff}
 .cart-bar-btn{background:#fff;color:var(--accent);border:none;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;flex-shrink:0;white-space:nowrap}
 .menu-grid{margin-bottom:100px}
-.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--dark);color:#fff;padding:11px 20px;border-radius:50px;font-size:13px;font-weight:600;z-index:999;transition:transform .3s;white-space:nowrap;max-width:90vw;text-align:center;pointer-events:none}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(120px);background:var(--dark);color:#fff;padding:11px 20px;border-radius:50px;font-size:13px;font-weight:600;z-index:999;transition:transform .3s;white-space:nowrap;max-width:90vw;text-align:center;pointer-events:none}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px}
 .loading-screen.hidden{display:none}
 .spinner{width:36px;height:36px;border:3px solid var(--brd);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 @media(max-width:400px){.menu-grid{grid-template-columns:1fr}.pay-options{grid-template-columns:1fr}}
+
+.search-bar{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.search-bar .fi{flex:1;min-width:120px;padding:9px 12px;font-size:12px}
+.btn-search{background:var(--dark);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap}
+.history-list{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;display:none}
+.history-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--brd);cursor:pointer;gap:8px}
+.history-item:last-child{border-bottom:none}
+.hi-code{font-size:12px;font-weight:700;color:var(--dark)}
+.hi-meta{font-size:10px;color:var(--txt2)}
+.hi-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px}
+.hs-pending{background:#FFF4EE;color:var(--accent)}
+.hs-confirmed,.hs-preparing{background:#EBF7F0;color:var(--green)}
+.hs-on_delivery{background:#E6F1FB;color:#185FA5}
+.hs-delivered{background:#EAF3DE;color:#27500A}
+.hs-cancelled{background:#FCEBEB;color:#791F1F}
+/* QRIS & upload proof */
+.qris-box{background:var(--bg);border:1.5px solid var(--brd);border-radius:12px;padding:14px;margin-bottom:10px;text-align:center;display:none}
+.qris-static-img{width:180px;height:180px;object-fit:contain;margin:0 auto 8px;display:block;border:1px solid var(--brd);border-radius:8px;background:#fff;padding:8px}
+.qris-merchant{font-size:13px;font-weight:700;color:var(--dark);margin-bottom:2px}
+.qris-amount{font-size:16px;font-weight:800;color:var(--accent);margin-bottom:8px}
+.qris-note{font-size:11px;color:var(--txt2);line-height:1.5}
+.upload-proof{border:1.5px dashed var(--brd);border-radius:12px;padding:14px;text-align:center;cursor:pointer;display:none;margin-bottom:10px;transition:all .15s}
+.upload-proof:hover{border-color:var(--accent);background:#FFF8F5}
+.upload-proof input{display:none}
+.upload-proof-label{font-size:12px;font-weight:600;color:var(--txt2);display:block;margin-top:6px}
+.upload-proof-preview{max-width:100%;max-height:150px;border-radius:8px;margin-top:8px;display:none}
+.proof-uploaded{font-size:11px;color:var(--green);font-weight:600;margin-top:4px;display:none}
 </style>
 </head>
 <body>
@@ -161,6 +188,15 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="hero-chip">🛵 Antar ke lokasi</div>
       <div class="hero-chip" id="hero-ongkir">💰 Rp 3k/km</div>
     </div>
+  </div>
+  <div class="search-bar">
+    <input class="fi" id="srch-nama" placeholder="Nama pemesan">
+    <input class="fi" id="srch-hp" placeholder="No. HP" type="tel">
+    <button class="btn-search" id="btn-cek-pesanan">🔍 Cek Pesanan</button>
+  </div>
+  <div class="history-list" id="history-list">
+    <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:8px">Riwayat Pesanan</div>
+    <div id="history-items"></div>
   </div>
   <div class="cat-scroll" id="cat-bar"></div>
   <div class="menu-grid" id="menu-grid"></div>
@@ -211,14 +247,32 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="ok-row"><span>Jarak</span><b id="ok-jarak">—</b></div>
       <div class="ok-row"><span>Ongkos Kirim</span><b id="ok-ongkir">Rp 0</b></div>
     </div>
+    <div id="min-ongkir-note" style="display:none;font-size:10px;color:var(--txt2);margin-top:5px">* Ongkir minimum berlaku untuk jarak di bawah 2 km. Bukan batas wilayah pengiriman.</div>
     <div class="sec-title">💳 Metode Pembayaran</div>
-    <div class="pay-options">
+    <div class="pay-options" style="grid-template-columns:1fr 1fr 1fr">
       <div class="pay-opt selected" id="pay-cod"><div class="pay-icon">💵</div><div class="pay-name">COD</div><div class="pay-desc">Bayar ke kurir</div></div>
+      <div class="pay-opt" id="pay-qris"><div class="pay-icon">📱</div><div class="pay-name">QRIS</div><div class="pay-desc">Scan QR</div></div>
       <div class="pay-opt" id="pay-transfer"><div class="pay-icon">🏦</div><div class="pay-name">Transfer</div><div class="pay-desc">Transfer bank</div></div>
     </div>
-    <div id="transfer-note" style="display:none;background:#EBF7F0;border:1.5px solid #A7EDD3;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#1A6040">
-      📲 Kami akan hubungi via WhatsApp untuk info rekening setelah order dikonfirmasi.
+    <!-- QRIS Box -->
+    <div class="qris-box" id="qris-box">
+      <img class="qris-static-img" id="qris-img" src="" alt="QRIS">
+      <div class="qris-merchant" id="qris-merchant">Warung</div>
+      <div class="qris-note">Scan QR di atas dengan aplikasi e-wallet atau m-banking apapun</div>
     </div>
+    <!-- Transfer info -->
+    <div id="transfer-box" style="display:none;background:#EBF7F0;border:1.5px solid #A7EDD3;border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:12px;color:#1A6040">
+      <div id="transfer-rekening" style="line-height:1.8"></div>
+    </div>
+    <!-- Upload bukti (QRIS & Transfer) -->
+    <label class="upload-proof" id="upload-proof-box">
+      <input type="file" id="proof-input" accept="image/*">
+      <div style="font-size:24px">📷</div>
+      <div class="upload-proof-label">Upload Bukti Pembayaran</div>
+      <div class="upload-proof-label" style="font-size:10px;margin-top:2px">(Wajib sebelum order dikirim)</div>
+      <img class="upload-proof-preview" id="proof-preview">
+      <div class="proof-uploaded" id="proof-uploaded">✅ Bukti pembayaran terpilih</div>
+    </label>
     <div class="sec-title">📋 Ringkasan</div>
     <div class="tot-box">
       <div class="tot-row"><span>Subtotal</span><span id="tot-sub">Rp 0</span></div>
@@ -270,10 +324,86 @@ async function init(){
   }catch(e){ g('loading-txt').textContent='Gagal: '+e.message; }
 }
 
+/* ── HISTORY: Cek pesanan by nama+HP ── */
+g('btn-cek-pesanan').addEventListener('click', searchOrders);
+async function searchOrders(){
+  var nama=g('srch-nama').value.trim(), hp=g('srch-hp').value.trim();
+  if(!nama && !hp){ toast('Isi nama atau no. HP'); return; }
+  var btn=g('btn-cek-pesanan'); btn.textContent='⏳'; btn.disabled=true;
+  try{
+    var q=_sb.from('online_orders').select('order_code,status,created_at,total,items_snapshot').order('created_at',{ascending:false}).limit(10);
+    if(nama) q=q.ilike('nama_pemesan','%'+nama+'%');
+    if(hp) q=q.eq('hp_pemesan',hp);
+    var res=await q;
+    if(res.error) throw res.error;
+    var list=g('history-items'), wrap=g('history-list');
+    if(!res.data||!res.data.length){ list.innerHTML='<div style="text-align:center;color:var(--txt3);font-size:12px;padding:12px">Tidak ada pesanan ditemukan</div>'; wrap.style.display='block'; return; }
+    var ST_LABEL={pending:'Menunggu',confirmed:'Dikonfirmasi',preparing:'Dimasak',on_delivery:'Diantar',delivered:'Selesai',cancelled:'Dibatalkan'};
+    list.innerHTML='';
+    res.data.forEach(function(o){
+      var div=document.createElement('div'); div.className='history-item';
+      var items=o.items_snapshot||[]; var itemStr=items.map(function(i){return i.qty+'x '+i.nama;}).join(', ');
+      var dt=new Date(o.created_at); var dtStr=dt.toLocaleDateString('id-ID',{day:'2-digit',month:'short'})+' '+dt.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+      div.innerHTML='<div><div class="hi-code">'+o.order_code+'</div><div class="hi-meta">'+dtStr+' · '+fmt(o.total)+'</div><div class="hi-meta" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+itemStr+'</div></div>'+
+        '<span class="hi-status hs-'+o.status+'">'+(ST_LABEL[o.status]||o.status)+'</span>';
+      div.addEventListener('click',function(){ history.pushState({},'','?order='+o.order_code); showStatus(o.order_code); });
+      list.appendChild(div);
+    });
+    wrap.style.display='block';
+  }catch(e){ toast('Gagal: '+e.message); }
+  btn.textContent='🔍 Cek Pesanan'; btn.disabled=false;
+}
+
+/* ── PAYMENT: QRIS & Transfer proof ── */
+var PROOF_BASE64 = null;
+
+g('pay-qris').addEventListener('click',function(){ setPay('qris'); });
+g('pay-transfer').addEventListener('click',function(){setPay('transfer');});
+
+function setPay(m){
+  PAY=m;
+  g('pay-cod').classList.toggle('selected',m==='cod');
+  g('pay-qris').classList.toggle('selected',m==='qris');
+  g('pay-transfer').classList.toggle('selected',m==='transfer');
+  g('qris-box').style.display=m==='qris'?'block':'none';
+  g('transfer-box').style.display=m==='transfer'?'block':'none';
+  g('upload-proof-box').style.display=(m==='qris'||m==='transfer')?'flex':'none';
+  g('upload-proof-box').style.flexDirection='column';
+  g('upload-proof-box').style.alignItems='center';
+  // Load QRIS/Transfer info from restaurant config
+  if(m==='qris' && window._RESTO){
+    var cfg=window._RESTO.cfg||{};
+    g('qris-merchant').textContent=window._RESTO.nama;
+    if(cfg.qrisImg) g('qris-img').src=cfg.qrisImg;
+    else { g('qris-img').alt='QRIS'; g('qris-img').style.display='none'; g('qris-box').innerHTML+='<div style="font-size:11px;color:var(--txt2);margin-top:6px">Gambar QRIS belum diupload di pengaturan warung</div>'; }
+  }
+  if(m==='transfer' && window._RESTO){
+    var cfg=window._RESTO.cfg||{};
+    var banks=cfg.banks||[];
+    if(banks.length){ g('transfer-rekening').innerHTML='<b style="display:block;margin-bottom:6px">Transfer ke rekening:</b>'+banks.map(function(b){ return '<div>'+b.nama+': <b>'+b.norek+'</b>'+(b.an?' a.n. '+b.an:'')+'</div>'; }).join(''); }
+    else { g('transfer-rekening').textContent='Info rekening belum tersedia. Hubungi warung.'; }
+  }
+}
+
+g('proof-input').addEventListener('change',function(){
+  var file=this.files&&this.files[0]; if(!file) return;
+  if(file.size>3*1024*1024){ toast('Ukuran foto maks 3MB'); return; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    PROOF_BASE64=e.target.result;
+    var prev=g('proof-preview'); prev.src=PROOF_BASE64; prev.style.display='block';
+    g('proof-uploaded').style.display='block';
+    g('upload-proof-box').querySelector('.upload-proof-label').style.display='none';
+  };
+  reader.readAsDataURL(file);
+});
+
+/* ── Load restaurant config for QRIS/transfer ── */
 async function loadRestaurant(){
   var res=await _sb.from('restaurants').select('*').eq('id',RESTAURANT_ID);
   if(res.error) throw res.error;
   var r=res.data&&res.data[0]; if(!r) return;
+  window._RESTO=r;
   g('hdr-name').textContent=r.nama;
   g('hdr-tagline').textContent=r.tagline||'Pesan sekarang, diantar ke rumah';
   g('hero-title').innerHTML=r.nama+'<br><span style="color:var(--accent2)">Diantar ke Rumah</span>';
@@ -284,6 +414,12 @@ async function loadRestaurant(){
   if(r.ongkir_per_km) ONGKIR_PER_KM=r.ongkir_per_km;
   if(r.lat) WARUNG_LAT=r.lat;
   if(r.lng) WARUNG_LNG=r.lng;
+  // Check open/closed
+  var cfg=r.cfg||{};
+  if(cfg.isOpen===false){
+    g('menu-grid').innerHTML='<div style="grid-column:1/-1;text-align:center;padding:48px 20px"><div style="font-size:48px;margin-bottom:12px">🔒</div><div style="font-size:16px;font-weight:800;color:var(--dark)">Warung Sedang Tutup</div><div style="font-size:13px;color:var(--txt2);margin-top:6px">'+(cfg.closedNote||'Maaf, kami sedang tidak menerima pesanan. Silakan coba lagi nanti.')+'</div></div>';
+    g('cat-bar').style.display='none';
+  }
 }
 
 async function loadMenus(){
@@ -399,11 +535,12 @@ g('btn-loc').addEventListener('click',function(){
       var km=haversine(WARUNG_LAT,WARUNG_LNG,USER_LAT,USER_LNG);
       var effectiveKm=Math.max(km,2); // minimal 2 km
       ONGKIR=Math.round(effectiveKm*ONGKIR_PER_KM);
-      g('loc-jarak').textContent=km.toFixed(1)+' km'+(km<2?' (min. 2 km)':'');
+      g('loc-jarak').textContent=km.toFixed(1)+' km'+(km<2?' (min. tagihan 2 km)':'');
       g('loc-result').style.display='block';
-      g('ok-jarak').textContent=km.toFixed(1)+' km'+(km<2?' (minimal 2 km)':'');
+      g('ok-jarak').textContent=km.toFixed(1)+' km'+(km<2?' *':'');
       g('ok-ongkir').textContent=fmt(ONGKIR);
       g('ongkir-box').style.display='block';
+      g('min-ongkir-note').style.display=km<2?'block':'none';
       updateTotals();
       btn.textContent='✅ Lokasi terdeteksi — klik untuk perbarui'; btn.disabled=false;
       toast('Jarak: '+km.toFixed(1)+' km — Ongkir: '+fmt(ONGKIR));
@@ -441,13 +578,14 @@ async function submitOrder(){
   if(!nama){ toast('Nama penerima wajib diisi'); return; }
   if(!hp){ toast('No. HP wajib diisi'); return; }
   if(!USER_LAT){ toast('Deteksi lokasi GPS terlebih dahulu untuk hitung ongkir'); return; }
+  if((PAY==='qris'||PAY==='transfer') && !PROOF_BASE64){ toast('Upload bukti pembayaran terlebih dahulu'); return; }
   var btn=g('btn-order'); btn.disabled=true; btn.textContent='⏳ Memproses...';
   try{
     var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0), total=sub+ONGKIR;
     var code='ORD-'+Date.now().toString(36).toUpperCase();
     var aRes=await _sb.from('delivery_addresses').insert({nama_penerima:nama,alamat_lengkap:alamat||(USER_LAT.toFixed(5)+', '+USER_LNG.toFixed(5)),lat:USER_LAT,lng:USER_LNG,catatan:g('inp-catatan').value.trim()}).select('id');
     if(aRes.error) throw aRes.error;
-    var oRes=await _sb.from('online_orders').insert({restaurant_id:RESTAURANT_ID,delivery_addr_id:aRes.data[0].id,order_code:code,nama_pemesan:nama,hp_pemesan:hp,subtotal:sub,ongkir:ONGKIR,total:total,pay_method:PAY,status:'pending',items_snapshot:CART.map(function(c){return {menu_id:c.id,nama:c.nama,harga:c.harga,qty:c.qty,note:c.note||''};}),catatan:g('inp-catatan').value.trim()}).select('id');
+    var oRes=await _sb.from('online_orders').insert({restaurant_id:RESTAURANT_ID,delivery_addr_id:aRes.data[0].id,order_code:code,nama_pemesan:nama,hp_pemesan:hp,subtotal:sub,ongkir:ONGKIR,total:total,pay_method:PAY,pay_status:PAY==='cod'?'pending':'proof_submitted',bukti_bayar_url:PROOF_BASE64||null,status:'pending',items_snapshot:CART.map(function(c){return {menu_id:c.id,nama:c.nama,harga:c.harga,qty:c.qty,note:c.note||''};}),catatan:g('inp-catatan').value.trim()}).select('id');
     if(oRes.error) throw oRes.error;
     await _sb.from('order_status_log').insert({order_id:oRes.data[0].id,status:'pending',keterangan:'Pesanan masuk, menunggu konfirmasi warung',by_role:'customer'});
     CART=[]; updateBadge(); closeCart();
