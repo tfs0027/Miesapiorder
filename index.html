@@ -371,7 +371,7 @@ var ONGKIR_PER_KM = 3500;
 var WARUNG_LAT    = -7.648514182449933;
 var WARUNG_LNG    = 111.529115128836;
 
-var _sb=null, MENUS=[], CART=[], PAY='cod', ONGKIR=0, USER_LAT=null, USER_LNG=null, _sub=null;
+var _sb=null, MENUS=[], CART=[], PAY='cod', ONGKIR=0, USER_LAT=null, USER_LNG=null, _sub=null, _VOUCHER=null;
 
 function fmt(n){ return 'Rp '+(n||0).toLocaleString('id-ID'); }
 function toast(msg,dur){ var e=document.getElementById('toast'); e.textContent=msg; e.classList.add('show'); setTimeout(function(){e.classList.remove('show');},dur||2500); }
@@ -645,8 +645,9 @@ function updateTotals(){
   var svc=calcService(sub);
   var svcNm=cfg?cfg.serviceNama||'Biaya Layanan':'Biaya Layanan';
   // Voucher discount
-  var vDiskon=_VOUCHER?_VOUCHER.diskon:0;
-  var vNm=_VOUCHER?'Voucher '+_VOUCHER.kode:'Voucher';
+  var _v=(typeof _VOUCHER!=='undefined')?_VOUCHER:null;
+  var vDiskon=_v?_v.diskon:0;
+  var vNm=_v?'Voucher '+_v.kode:'Voucher';
   var total=Math.max(0, sub+ONGKIR+svc-vDiskon);
   g('tot-sub').textContent=fmt(sub);
   g('tot-ongkir').textContent=fmt(ONGKIR);
