@@ -307,10 +307,21 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="proof-uploaded" id="proof-uploaded">✅ Bukti pembayaran terpilih</div>
     </div>
     <div class="sec-title">📋 Ringkasan</div>
+    <!-- Voucher input -->
+    <div style="margin-bottom:10px">
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px">🎟️ Kode Voucher / Diskon</div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="inp-voucher" placeholder="Masukkan kode voucher..." style="flex:1;padding:10px 12px;border:1.5px solid var(--brd);border-radius:10px;font-size:13px;font-family:inherit;color:var(--dark);background:var(--bg);text-transform:uppercase;outline:none" oninput="this.value=this.value.toUpperCase()">
+        <button onclick="applyVoucher()" style="padding:10px 14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">Pakai</button>
+      </div>
+      <div id="voucher-status" style="font-size:11px;margin-top:6px;display:none"></div>
+    </div>
+
     <div class="tot-box">
       <div class="tot-row"><span>Subtotal</span><span id="tot-sub">Rp 0</span></div>
       <div class="tot-row"><span>Ongkos Kirim</span><span id="tot-ongkir">Rp 0</span></div>
       <div class="tot-row" id="tot-svc-row" style="display:none"><span id="tot-svc-nm">Biaya Layanan</span><span id="tot-svc">Rp 0</span></div>
+      <div class="tot-row" id="tot-voucher-row" style="display:none;color:var(--green-dk)"><span id="tot-voucher-nm">Voucher</span><span id="tot-voucher">-Rp 0</span></div>
       <div class="tot-row grand"><span>Total</span><span id="tot-total">Rp 0</span></div>
     </div>
     <button class="btn-order" id="btn-order">Buat Pesanan</button>
@@ -615,17 +626,32 @@ function updateBadge(){
     bar.classList.remove('show');
   }
 }
+function calcService(sub){
+  var cfg=window._RESTO&&window._RESTO.cfg;
+  if(!cfg||!cfg.enableService) return 0;
+  if(cfg.serviceTipe==='flat') return cfg.serviceFlat||0;
+  var svc=Math.round(sub*(cfg.service||0)/100);
+  return svc;
+}
+
 function updateTotals(){
   var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0);
-  var svc=window._RESTO&&window._RESTO.cfg&&window._RESTO.cfg.enableService
-    ? Math.round(sub*(window._RESTO.cfg.service||0)/100) : 0;
-  var svcNm=window._RESTO&&window._RESTO.cfg?window._RESTO.cfg.serviceNama||'':'Biaya Layanan';
-  var total=sub+ONGKIR+svc;
+  var cfg=window._RESTO&&window._RESTO.cfg;
+  // Service charge
+  var svc=calcService(sub);
+  var svcNm=cfg?cfg.serviceNama||'Biaya Layanan':'Biaya Layanan';
+  // Voucher discount
+  var vDiskon=_VOUCHER?_VOUCHER.diskon:0;
+  var vNm=_VOUCHER?'Voucher '+_VOUCHER.kode:'Voucher';
+  var total=Math.max(0, sub+ONGKIR+svc-vDiskon);
   g('tot-sub').textContent=fmt(sub);
   g('tot-ongkir').textContent=fmt(ONGKIR);
   var svcRow=g('tot-svc-row'); if(svcRow) svcRow.style.display=svc>0?'':'none';
   var svcEl=g('tot-svc'); if(svcEl) svcEl.textContent=fmt(svc);
   var svcNmEl=g('tot-svc-nm'); if(svcNmEl) svcNmEl.textContent=svcNm;
+  var vRow=g('tot-voucher-row'); if(vRow) vRow.style.display=vDiskon>0?'':'none';
+  var vEl=g('tot-voucher'); if(vEl) vEl.textContent='-'+fmt(vDiskon);
+  var vNmEl=g('tot-voucher-nm'); if(vNmEl) vNmEl.textContent=vNm;
   g('tot-total').textContent=fmt(total);
 }
 
@@ -701,7 +727,52 @@ g('btn-loc').addEventListener('click',function(){
 
 /* SUBMIT */
 g('btn-order').addEventListener('click',submitOrder);
-async function submitOrder(){
+async 
+/* VOUCHER */
+function applyVoucher(){
+  var kode=(g('inp-voucher').value||'').trim().toUpperCase();
+  var statusEl=g('voucher-status');
+  if(!kode){ toast('Masukkan kode voucher'); return; }
+  var vouchers=(window._RESTO&&window._RESTO.cfg&&window._RESTO.cfg.vouchers)||[];
+  var v=vouchers.find(function(x){ return x.kode===kode && x.aktif; });
+  if(!v){
+    statusEl.style.display='block';
+    statusEl.style.color='var(--red-dk)';
+    statusEl.innerHTML='❌ Kode tidak valid atau sudah tidak aktif';
+    _VOUCHER=null; updateTotals(); return;
+  }
+  if(v.maksUse>0 && (v.usedCount||0)>=v.maksUse){
+    statusEl.style.display='block';
+    statusEl.style.color='var(--red-dk)';
+    statusEl.innerHTML='❌ Kode sudah mencapai batas penggunaan';
+    _VOUCHER=null; updateTotals(); return;
+  }
+  var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0);
+  var diskon=0;
+  if(v.tipe==='flat'){
+    diskon=v.nilai||0;
+  } else {
+    diskon=Math.round(sub*(v.nilai||0)/100);
+    if(v.maksNominal>0) diskon=Math.min(diskon, v.maksNominal);
+  }
+  diskon=Math.min(diskon, sub); // jangan melebihi subtotal
+  _VOUCHER={kode:kode, diskon:diskon, data:v};
+  statusEl.style.display='block';
+  statusEl.style.color='var(--green-dk)';
+  statusEl.innerHTML='✅ Voucher <b>'+kode+'</b> berhasil! Hemat <b>'+fmt(diskon)+'</b>'
+    +(v.ket?' <span style="opacity:.7">('+v.ket+')</span>':'')
+    +' <span onclick="clearVoucher()" style="cursor:pointer;margin-left:6px;text-decoration:underline;color:var(--red-dk);font-size:10px">Hapus</span>';
+  updateTotals();
+}
+
+function clearVoucher(){
+  _VOUCHER=null;
+  var inp=g('inp-voucher'); if(inp) inp.value='';
+  var statusEl=g('voucher-status'); if(statusEl) statusEl.style.display='none';
+  updateTotals();
+}
+
+function submitOrder(){
   if(!CART.length){ toast('Keranjang masih kosong!'); return; }
   var nama=g('inp-nama').value.trim(), hp=g('inp-hp').value.trim(), alamat=g('inp-alamat').value.trim();
   if(!nama){ toast('Nama penerima wajib diisi'); return; }
@@ -710,14 +781,18 @@ async function submitOrder(){
   if((PAY==='qris'||PAY==='transfer') && !PROOF_BASE64){ toast('Upload bukti pembayaran terlebih dahulu'); return; }
   var btn=g('btn-order'); btn.disabled=true; btn.textContent='⏳ Memproses...';
   try{
-    var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0), total=sub+ONGKIR;
+    var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0);
+    var svcAmt=calcService(sub);
+    var vDiskon=_VOUCHER?_VOUCHER.diskon:0;
+    var vKode=_VOUCHER?_VOUCHER.kode:null;
+    var total=Math.max(0, sub+ONGKIR+svcAmt-vDiskon);
     var code='ORD-'+Date.now().toString(36).toUpperCase();
     var aRes=await _sb.from('delivery_addresses').insert({nama_penerima:nama,alamat_lengkap:alamat||(USER_LAT.toFixed(5)+', '+USER_LNG.toFixed(5)),lat:USER_LAT,lng:USER_LNG,catatan:g('inp-catatan').value.trim()}).select('id');
     if(aRes.error) throw aRes.error;
-    var oRes=await _sb.from('online_orders').insert({restaurant_id:RESTAURANT_ID,delivery_addr_id:aRes.data[0].id,order_code:code,nama_pemesan:nama,hp_pemesan:hp,subtotal:sub,ongkir:ONGKIR,total:total,pay_method:PAY,pay_status:PAY==='cod'?'pending':'paid',bukti_bayar_url:PROOF_BASE64||null,status:'pending',items_snapshot:CART.map(function(c){return {menu_id:c.id,nama:c.nama+(c.varLabel?' ('+c.varLabel+')':''),harga:c.harga,qty:c.qty,note:c.note||'',varLabel:c.varLabel||''};}),catatan:g('inp-catatan').value.trim()}).select('id');
+    var oRes=await _sb.from('online_orders').insert({restaurant_id:RESTAURANT_ID,delivery_addr_id:aRes.data[0].id,order_code:code,nama_pemesan:nama,hp_pemesan:hp,subtotal:sub,ongkir:ONGKIR,service_fee:svcAmt,diskon_voucher:vDiskon,kode_voucher:vKode,total:total,pay_method:PAY,pay_status:PAY==='cod'?'pending':'paid',bukti_bayar_url:PROOF_BASE64||null,status:'pending',items_snapshot:CART.map(function(c){return {menu_id:c.id,nama:c.nama+(c.varLabel?' ('+c.varLabel+')':''),harga:c.harga,qty:c.qty,note:c.note||'',varLabel:c.varLabel||''};}),catatan:g('inp-catatan').value.trim()}).select('id');
     if(oRes.error) throw oRes.error;
     await _sb.from('order_status_log').insert({order_id:oRes.data[0].id,status:'pending',keterangan:'Pesanan masuk, menunggu konfirmasi warung',by_role:'customer'});
-    CART=[]; updateBadge(); closeCart();
+    CART=[]; updateBadge(); closeCart(); _VOUCHER=null;
     history.pushState({},'','?order='+code);
     await showStatus(code, oRes.data[0].id);
   }catch(e){ toast('Gagal: '+(e.message||'Coba lagi')); btn.disabled=false; btn.textContent='Buat Pesanan'; }
