@@ -727,7 +727,6 @@ g('btn-loc').addEventListener('click',function(){
 
 /* SUBMIT */
 g('btn-order').addEventListener('click',submitOrder);
-async 
 /* VOUCHER */
 function applyVoucher(){
   var kode=(g('inp-voucher').value||'').trim().toUpperCase();
@@ -772,7 +771,7 @@ function clearVoucher(){
   updateTotals();
 }
 
-function submitOrder(){
+async function submitOrder(){
   if(!CART.length){ toast('Keranjang masih kosong!'); return; }
   var nama=g('inp-nama').value.trim(), hp=g('inp-hp').value.trim(), alamat=g('inp-alamat').value.trim();
   if(!nama){ toast('Nama penerima wajib diisi'); return; }
@@ -787,6 +786,7 @@ function submitOrder(){
     var vKode=_VOUCHER?_VOUCHER.kode:null;
     var total=Math.max(0, sub+ONGKIR+svcAmt-vDiskon);
     var code='ORD-'+Date.now().toString(36).toUpperCase();
+
     var aRes=await _sb.from('delivery_addresses').insert({nama_penerima:nama,alamat_lengkap:alamat||(USER_LAT.toFixed(5)+', '+USER_LNG.toFixed(5)),lat:USER_LAT,lng:USER_LNG,catatan:g('inp-catatan').value.trim()}).select('id');
     if(aRes.error) throw aRes.error;
     var oRes=await _sb.from('online_orders').insert({restaurant_id:RESTAURANT_ID,delivery_addr_id:aRes.data[0].id,order_code:code,nama_pemesan:nama,hp_pemesan:hp,subtotal:sub,ongkir:ONGKIR,service_fee:svcAmt,diskon_voucher:vDiskon,kode_voucher:vKode,total:total,pay_method:PAY,pay_status:PAY==='cod'?'pending':'paid',bukti_bayar_url:PROOF_BASE64||null,status:'pending',items_snapshot:CART.map(function(c){return {menu_id:c.id,nama:c.nama+(c.varLabel?' ('+c.varLabel+')':''),harga:c.harga,qty:c.qty,note:c.note||'',varLabel:c.varLabel||''};}),catatan:g('inp-catatan').value.trim()}).select('id');
