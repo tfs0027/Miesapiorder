@@ -386,10 +386,14 @@ async function init(){
     _sb=window.supabase.createClient(SB_URL,SB_KEY);
     await loadRestaurant();
     await loadMenus();
+  }catch(e){
+    console.error('Init error:', e);
+    g('loading-txt').textContent='Gagal memuat: '+(e.message||'Coba refresh');
+  } finally {
     g('loading').classList.add('hidden');
     g('main-header').style.display='block';
     g('menu-page').style.display='block';
-  }catch(e){ g('loading-txt').textContent='Gagal: '+e.message; }
+  }
 }
 
 /* ── HISTORY: Cek pesanan by nama+HP ── */
