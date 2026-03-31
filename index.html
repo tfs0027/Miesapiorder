@@ -547,7 +547,11 @@ async function loadRestaurant(){
 async function loadMenus(){
   var res=await _sb.from('menus').select('*').eq('restaurant_id',RESTAURANT_ID);
   if(res.error) throw res.error;
-  MENUS=(res.data||[]).sort(function(a,b){return (a.urutan||0)-(b.urutan||0);});
+  // Sort: items with urutan=0 go last, others sort ascending
+  MENUS=(res.data||[]).filter(function(m){return m.status!=='out'||m.status==='out';}).sort(function(a,b){
+    var ua=a.urutan||9999, ub=b.urutan||9999;
+    return ua-ub;
+  });
   var cats=['Semua'];
   MENUS.forEach(function(m){ var c=m.kategori||m.cat||'Menu'; if(cats.indexOf(c)<0) cats.push(c); });
   var bar=g('cat-bar');
