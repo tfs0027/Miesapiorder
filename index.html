@@ -873,7 +873,28 @@ async function submitOrder(){
   if(DELIVERY_TYPE==='delivery' && !USER_LAT){ toast('Deteksi lokasi GPS terlebih dahulu untuk hitung ongkir'); return; }
   if(DELIVERY_TYPE==='pickup') { ONGKIR=0; USER_LAT=null; USER_LNG=null; }
   if((PAY==='qris'||PAY==='transfer') && !PROOF_BASE64){ toast('Upload bukti pembayaran terlebih dahulu'); return; }
-  var btn=g('btn-order'); btn.disabled=true; btn.textContent='⏳ Memproses...';
+
+  // Cek pesanan aktif milik pemesan ini
+  var btn=g('btn-order'); btn.disabled=true; btn.textContent='⏳ Memeriksa pesanan...';
+  try {
+    var activeRes = await _sb.from('online_orders')
+      .select('id,order_code,status')
+      .eq('restaurant_id', RESTAURANT_ID)
+      .eq('hp_pemesan', hp)
+      .not('status','in','(delivered,cancelled)');
+    if (activeRes.data && activeRes.data.length > 0) {
+      var activeCode = activeRes.data[0].order_code;
+      var activeStatus = {pending:'Menunggu Konfirmasi',confirmed:'Dikonfirmasi',preparing:'Sedang Dimasak',on_delivery:'Sedang Diantar'}[activeRes.data[0].status] || activeRes.data[0].status;
+      btn.disabled=false; btn.textContent='Buat Pesanan';
+      toast('❌ Pesanan ' + activeCode + ' masih ' + activeStatus + '. Selesaikan dulu sebelum pesan lagi.', 5000);
+      return;
+    }
+  } catch(checkErr) {
+    console.warn('Cek pesanan aktif gagal:', checkErr.message);
+    // Jika cek gagal, lanjutkan saja
+  }
+
+  btn.textContent='⏳ Memproses...';
   try{
     var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0);
     var svcAmt=calcService(sub);
