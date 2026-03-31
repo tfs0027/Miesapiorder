@@ -311,6 +311,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="ongkir-box" id="ongkir-box">
       <div class="ok-row"><span>Jarak</span><b id="ok-jarak">—</b></div>
       <div class="ok-row"><span>Ongkos Kirim</span><b id="ok-ongkir">Rp 0</b></div>
+      <div id="ongkir-raw-note" style="font-size:10px;color:var(--txt3);text-align:right;margin-top:2px"></div>
     </div>
     <div id="min-ongkir-note" style="display:none;font-size:10px;color:var(--txt2);margin-top:5px">* Ongkir minimum berlaku untuk jarak di bawah 2 km. Bukan batas wilayah pengiriman.</div>
     </div><!-- end delivery-section -->
@@ -762,11 +763,14 @@ g('btn-loc').addEventListener('click',function(){
       USER_LAT=pos.coords.latitude; USER_LNG=pos.coords.longitude;
       var km=haversine(WARUNG_LAT,WARUNG_LNG,USER_LAT,USER_LNG);
       var effectiveKm=Math.max(km,2); // minimal 2 km
-      ONGKIR=Math.round(effectiveKm*ONGKIR_PER_KM);
+      var rawOngkir = effectiveKm * ONGKIR_PER_KM;
+      ONGKIR = Math.ceil(rawOngkir / 500) * 500; // Dibulatkan ke atas kelipatan Rp 500
       g('loc-jarak').textContent=km.toFixed(1)+' km'+(km<2?' (min. tagihan 2 km)':'');
       g('loc-result').style.display='block';
       g('ok-jarak').textContent=km.toFixed(1)+' km'+(km<2?' *':'');
       g('ok-ongkir').textContent=fmt(ONGKIR);
+      var rawNote=g('ongkir-raw-note');
+      if(rawNote) rawNote.textContent='('+km.toFixed(2)+' km × Rp '+(ONGKIR_PER_KM).toLocaleString('id-ID')+' = dibulatkan ke atas Rp 500)';
       g('ongkir-box').style.display='block';
       g('min-ongkir-note').style.display=km<2?'block':'none';
       updateTotals();
