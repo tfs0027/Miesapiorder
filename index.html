@@ -955,6 +955,27 @@ g('btn-back').addEventListener('click',function(){
   g('main-header').style.display='block';
   g('menu-page').style.display='block';
   if(_sub){_sb.removeChannel(_sub);_sub=null;}
+  // Reset state for new order
+  CART=[]; _VOUCHER=null; DELIVERY_TYPE='delivery';
+  updateBadge();
+  // Re-render menu if MENUS already loaded
+  if(MENUS.length>0){
+    renderGrid('Semua');
+    // Reset active cat pill
+    document.querySelectorAll('.cat-pill').forEach(function(p){p.classList.remove('active');});
+    var first=document.querySelector('.cat-pill');
+    if(first) first.classList.add('active');
+  } else {
+    // Menus not loaded yet - reload from Supabase
+    loadMenus().catch(function(e){console.warn('reload menus:',e.message);});
+  }
+  // Reset delivery type UI
+  var btnDel=g('btn-type-delivery'), btnPick=g('btn-type-pickup');
+  if(btnDel){btnDel.classList.add('active');}
+  if(btnPick){btnPick.classList.remove('active');}
+  var delSec=g('delivery-section'), pickSec=g('pickup-section');
+  if(delSec) delSec.style.display='block';
+  if(pickSec) pickSec.style.display='none';
 });
 
 // Show 'Pesan Lagi' only for terminal statuses
