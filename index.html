@@ -38,8 +38,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:80px}
 .menu-card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--radius);overflow:hidden;position:relative}
 .menu-card.out{opacity:.5}
-.menu-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
-.menu-emoji{width:100%;aspect-ratio:1/1;height:auto;min-height:90px;display:flex;align-items:center;justify-content:center;font-size:48px;background:linear-gradient(135deg,#FFF8F3,#FFE8D8)}
+.menu-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block;border-radius:var(--radius) var(--radius) 0 0}
+.menu-emoji{width:100%;aspect-ratio:1/1;height:auto;min-height:90px;display:flex;align-items:center;justify-content:center;font-size:48px;background:linear-gradient(135deg,var(--bg),var(--bg2))}
 .menu-body{padding:10px 12px 42px}
 .menu-cat{font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
 .menu-name{font-size:13px;font-weight:700;color:var(--dark);line-height:1.3;margin-bottom:4px}
@@ -184,8 +184,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .menu-grid.list-view .menu-card{display:flex;align-items:center;gap:12px;border-radius:0;border-left:none;border-right:none;border-top:none;background:var(--bg)}
 .menu-grid.list-view .menu-card:first-child{border-radius:var(--radius) var(--radius) 0 0;border-top:1px solid var(--brd)}
 .menu-grid.list-view .menu-card:last-child{border-radius:0 0 var(--radius) var(--radius)}
-.menu-grid.list-view .menu-img{width:72px;height:72px;min-height:unset;aspect-ratio:1/1;border-radius:10px;flex-shrink:0}
-.menu-grid.list-view .menu-emoji{width:72px;height:72px;min-height:unset;aspect-ratio:1/1;border-radius:10px;flex-shrink:0;font-size:28px}
+.menu-grid.list-view .menu-img{width:72px!important;height:72px!important;aspect-ratio:1/1;object-fit:cover;border-radius:10px;flex-shrink:0;min-height:unset;border-radius:10px}
+.menu-grid.list-view .menu-emoji{width:72px!important;height:72px!important;min-height:unset!important;aspect-ratio:unset!important;border-radius:10px;flex-shrink:0;font-size:28px}
 .menu-grid.list-view .menu-out-badge{top:4px;left:78px}
 .menu-grid.list-view .menu-body{flex:1;padding:10px 0}
 .menu-grid.list-view .menu-body .menu-name{font-size:13px}
@@ -638,7 +638,7 @@ function renderGrid(cat){
     var qty=getQty(m.id);
     card.innerHTML=
       (m.foto_url
-        ? '<img class="menu-img" src="'+m.foto_url+'" loading="lazy" style="width:calc(100% + 0px);height:90px;object-fit:cover;border-radius:var(--radius) var(--radius) 0 0;display:block">'
+        ? '<img class="menu-img" src="'+m.foto_url+'" loading="lazy">'
         : '<div class="menu-emoji">'+(m.emoji||'🍽️')+'</div>')+
       (isOut?'<div class="menu-out-badge">Habis</div>':'')+
       '<div class="menu-body"><div class="menu-cat">'+(m.kategori||m.cat||'Menu')+'</div><div class="menu-name">'+m.nama+'</div><div class="menu-price">'+fmt(m.harga)+'</div></div>'+
