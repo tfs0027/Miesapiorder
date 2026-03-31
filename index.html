@@ -958,6 +958,22 @@ g('btn-back').addEventListener('click',function(){
   // Reset state for new order
   CART=[]; _VOUCHER=null; DELIVERY_TYPE='delivery';
   updateBadge();
+  // Reset btn-order state
+  var btnOrder=g('btn-order');
+  if(btnOrder){ btnOrder.disabled=false; btnOrder.textContent='Buat Pesanan'; btnOrder.style.background=''; }
+  // Clear voucher UI
+  var vInp=g('inp-voucher'); if(vInp) vInp.value='';
+  var vStat=g('voucher-status'); if(vStat) vStat.style.display='none';
+  // Reset payment
+  PAY='cod'; PROOF_BASE64=null; ONGKIR=0;
+  var payCod=g('pay-cod'); if(payCod) payCod.classList.add('selected');
+  var payQris=g('pay-qris'); if(payQris) payQris.classList.remove('selected');
+  var payTrf=g('pay-transfer'); if(payTrf) payTrf.classList.remove('selected');
+  var qrisBox=g('qris-box'); if(qrisBox) qrisBox.style.display='none';
+  var trfBox=g('transfer-box'); if(trfBox) trfBox.style.display='none';
+  var proofBox=g('upload-proof-box'); if(proofBox) proofBox.style.display='none';
+  var proofPrev=g('proof-preview'); if(proofPrev) proofPrev.src='';
+  var proofUpl=g('proof-uploaded'); if(proofUpl) proofUpl.style.display='none';
   // Re-render menu if MENUS already loaded
   if(MENUS.length>0){
     renderGrid('Semua');
