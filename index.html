@@ -38,8 +38,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:80px}
 .menu-card{background:var(--bg2);border:1px solid var(--brd);border-radius:var(--radius);overflow:hidden;position:relative}
 .menu-card.out{opacity:.5}
-.menu-img{width:100%;height:110px;object-fit:cover;display:block}
-.menu-emoji{width:100%;height:110px;display:flex;align-items:center;justify-content:center;font-size:48px;background:linear-gradient(135deg,#FFF8F3,#FFE8D8)}
+.menu-img{width:100%;aspect-ratio:1/1;object-fit:cover;display:block}
+.menu-emoji{width:100%;aspect-ratio:1/1;height:auto;min-height:90px;display:flex;align-items:center;justify-content:center;font-size:48px;background:linear-gradient(135deg,#FFF8F3,#FFE8D8)}
 .menu-body{padding:10px 12px 42px}
 .menu-cat{font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
 .menu-name{font-size:13px;font-weight:700;color:var(--dark);line-height:1.3;margin-bottom:4px}
@@ -178,6 +178,19 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
 .delivery-type-btn{flex:1;padding:10px;border:1.5px solid var(--brd);border-radius:10px;background:var(--bg);color:var(--txt);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;transition:.15s}
 .delivery-type-btn.active{border-color:var(--accent);background:var(--accent);color:#fff}
+
+/* List view */
+.menu-grid.list-view{grid-template-columns:1fr;gap:0}
+.menu-grid.list-view .menu-card{display:flex;align-items:center;gap:12px;border-radius:0;border-left:none;border-right:none;border-top:none;background:var(--bg)}
+.menu-grid.list-view .menu-card:first-child{border-radius:var(--radius) var(--radius) 0 0;border-top:1px solid var(--brd)}
+.menu-grid.list-view .menu-card:last-child{border-radius:0 0 var(--radius) var(--radius)}
+.menu-grid.list-view .menu-img{width:72px;height:72px;min-height:unset;aspect-ratio:1/1;border-radius:10px;flex-shrink:0}
+.menu-grid.list-view .menu-emoji{width:72px;height:72px;min-height:unset;aspect-ratio:1/1;border-radius:10px;flex-shrink:0;font-size:28px}
+.menu-grid.list-view .menu-out-badge{top:4px;left:78px}
+.menu-grid.list-view .menu-body{flex:1;padding:10px 0}
+.menu-grid.list-view .menu-body .menu-name{font-size:13px}
+.menu-grid.list-view .card-qty{bottom:10px;right:8px}
+.menu-grid.list-view .btn-add{bottom:10px;right:8px;top:auto}
 </style>
 </head>
 <body>
@@ -231,7 +244,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div style="font-size:12px;font-weight:700;color:var(--dark);margin-bottom:8px">Riwayat Pesanan</div>
     <div id="history-items"></div>
   </div>
-  <div class="cat-scroll" id="cat-bar"></div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+    <div class="cat-scroll" id="cat-bar" style="flex:1;margin-bottom:0"></div>
+    <div style="display:flex;gap:4px;margin-left:8px;flex-shrink:0">
+      <button id="btn-view-grid" onclick="setMenuView('grid')" title="Grid" style="width:32px;height:32px;border:1.5px solid var(--accent);border-radius:8px;background:var(--accent);color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">⊞</button>
+      <button id="btn-view-list" onclick="setMenuView('list')" title="List" style="width:32px;height:32px;border:1.5px solid var(--brd);border-radius:8px;background:var(--bg);color:var(--txt2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">☰</button>
+    </div>
+  </div>
   <div class="menu-grid" id="menu-grid"></div>
 </div>
 
@@ -402,6 +421,24 @@ function toast(msg,dur){ var e=document.getElementById('toast'); e.textContent=m
 function g(id){ return document.getElementById(id); }
 
 /* INIT */
+
+/* MENU VIEW TOGGLE */
+var _menuView = 'grid';
+function setMenuView(view) {
+  _menuView = view;
+  var grid = g('menu-grid');
+  var btnGrid = g('btn-view-grid'), btnList = g('btn-view-list');
+  if (view === 'list') {
+    grid.classList.add('list-view');
+    if (btnList) { btnList.style.background='var(--accent)'; btnList.style.color='#fff'; btnList.style.borderColor='var(--accent)'; }
+    if (btnGrid) { btnGrid.style.background='var(--bg)'; btnGrid.style.color='var(--txt2)'; btnGrid.style.borderColor='var(--brd)'; }
+  } else {
+    grid.classList.remove('list-view');
+    if (btnGrid) { btnGrid.style.background='var(--accent)'; btnGrid.style.color='#fff'; btnGrid.style.borderColor='var(--accent)'; }
+    if (btnList) { btnList.style.background='var(--bg)'; btnList.style.color='var(--txt2)'; btnList.style.borderColor='var(--brd)'; }
+  }
+}
+
 async function init(){
   var params=new URLSearchParams(location.search);
   var oc=params.get('order');
