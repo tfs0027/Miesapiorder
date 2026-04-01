@@ -875,10 +875,12 @@ function setOrderMethod(method){
     if(dBtn) dBtn.classList.add('selected'); if(pBtn) pBtn.classList.remove('selected');
     if(dSec) dSec.style.display='block';
     if(aGrp) aGrp.style.display='block';
+    var pSec2=g('pickup-section'); if(pSec2) pSec2.style.display='none';
   } else {
     if(pBtn) pBtn.classList.add('selected'); if(dBtn) dBtn.classList.remove('selected');
     if(dSec) dSec.style.display='none';
     if(aGrp) aGrp.style.display='none';
+    var pSec=g('pickup-section'); if(pSec) pSec.style.display='block';
     ONGKIR=0; updateTotals();
   }
 }
@@ -936,7 +938,7 @@ async function submitOrder(){
 }
 
 /* STATUS */
-var SI={pending:{icon:'⏳',title:'Menunggu Konfirmasi',sub:'Pesananmu sedang dilihat warung.'},confirmed:{icon:'✅',title:'Pesanan Dikonfirmasi!',sub:'Warung sudah menerima pesananmu.'},preparing:{icon:'👨‍🍳',title:'Sedang Dimasak',sub:'Pesananmu sedang dimasak di dapur!'},on_delivery:{icon:'🛵',title:'Sedang Diantar!',sub:'Kurir sedang dalam perjalanan ke lokasimu.'},delivered:{icon:'🎉',title:'Pesanan Tiba!',sub:'Selamat menikmati hidangannya!'},cancelled:{icon:'❌',title:'Dibatalkan',sub:'Hubungi warung untuk info lebih lanjut.'}};
+var SI={pending:{icon:'⏳',title:'Menunggu Konfirmasi',sub:'Pesananmu sedang dilihat warung.'},confirmed:{icon:'✅',title:'Pesanan Dikonfirmasi!',sub:'Warung sudah menerima pesananmu.'},preparing:{icon:'👨‍🍳',title:'Sedang Dimasak',sub:'Pesananmu sedang dimasak di dapur!'},ready_pickup:{icon:'🏃',title:'Siap Diambil!',sub:'Pesananmu siap — silakan datang ke warung untuk mengambil pesanan.'},on_delivery:{icon:'🛵',title:'Sedang Diantar!',sub:'Kurir sedang dalam perjalanan ke lokasimu.'},delivered:{icon:'🎉',title:'Pesanan Tiba!',sub:'Selamat menikmati hidangannya!'},cancelled:{icon:'❌',title:'Dibatalkan',sub:'Hubungi warung untuk info lebih lanjut.'}};
 var STEPS_DELIVERY=['pending','confirmed','preparing','on_delivery','delivered'];
 var STEPS_PICKUP=['pending','confirmed','preparing','ready_pickup','delivered'];
 var STEPS=STEPS_DELIVERY;
