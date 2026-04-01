@@ -322,6 +322,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         ✅ Ambil pesanan langsung di warung. Tidak ada ongkos kirim.
       </div>
     </div>
+        </div><!-- /delivery-section -->
     <div class="sec-title">💳 Metode Pembayaran</div>
     <div class="pay-options">
       <div class="pay-opt selected" id="pay-cod"><div class="pay-icon">💵</div><div class="pay-name">COD</div><div class="pay-desc">Bayar ke kurir</div></div>
@@ -717,6 +718,8 @@ function updateTotals(){
   var total=Math.max(0, sub+ONGKIR+svc-vDiskon);
   g('tot-sub').textContent=fmt(sub);
   g('tot-ongkir').textContent=fmt(ONGKIR);
+  var ongkirRow=g('tot-ongkir')?g('tot-ongkir').parentElement:null;
+  if(ongkirRow) ongkirRow.style.display=ORDER_METHOD==='pickup'?'none':'';
   var svcRow=g('tot-svc-row'); if(svcRow) svcRow.style.display=svc>0?'':'none';
   var svcEl=g('tot-svc'); if(svcEl) svcEl.textContent=fmt(svc);
   var svcNmEl=g('tot-svc-nm'); if(svcNmEl) svcNmEl.textContent=svcNm;
@@ -865,6 +868,19 @@ function setDeliveryType(type) {
   }
 }
 
+function setOrderMethod(method){
+  ORDER_METHOD=method;
+  var dBtn=g('method-delivery'),pBtn=g('method-pickup'),dSec=g('delivery-section');
+  if(method==='delivery'){
+    if(dBtn) dBtn.classList.add('selected'); if(pBtn) pBtn.classList.remove('selected');
+    if(dSec) dSec.style.display='block';
+  } else {
+    if(pBtn) pBtn.classList.add('selected'); if(dBtn) dBtn.classList.remove('selected');
+    if(dSec) dSec.style.display='none';
+    ONGKIR=0; updateTotals();
+  }
+}
+
 async function submitOrder(){
   if(!CART.length){ toast('Keranjang masih kosong!'); return; }
   var nama=g('inp-nama').value.trim(), hp=g('inp-hp').value.trim(), alamat=g('inp-alamat').value.trim();
@@ -903,9 +919,12 @@ async function submitOrder(){
     var total=Math.max(0, sub+ONGKIR+svcAmt-vDiskon);
     var code='ORD-'+Date.now().toString(36).toUpperCase();
 
-    var aRes=await _sb.from('delivery_addresses').insert({nama_penerima:nama,alamat_lengkap:alamat||(USER_LAT.toFixed(5)+', '+USER_LNG.toFixed(5)),lat:USER_LAT,lng:USER_LNG,catatan:g('inp-catatan').value.trim()}).select('id');
+        var addrLat=ORDER_METHOD==='delivery'?USER_LAT:null;
+    var addrLng=ORDER_METHOD==='delivery'?USER_LNG:null;
+    var addrStr=alamat||(addrLat?(addrLat.toFixed(5)+','+addrLng.toFixed(5)):(ORDER_METHOD==='pickup'?'Ambil sendiri di warung':''));
+    var aRes=await _sb.from('delivery_addresses').insert({nama_penerima:nama,alamat_lengkap:addrStr,lat:addrLat,lng:addrLng,catatan:g('inp-catatan').value.trim()}).select('id');
     if(aRes.error) throw aRes.error;
-    var oRes=await _sb.from('online_orders').insert({restaurant_id:RESTAURANT_ID,delivery_type:DELIVERY_TYPE,delivery_addr_id:aRes.data[0].id,order_code:code,nama_pemesan:nama,hp_pemesan:hp,subtotal:sub,ongkir:ONGKIR,service_fee:svcAmt,diskon_voucher:vDiskon,kode_voucher:vKode,total:total,pay_method:PAY,pay_status:PAY==='cod'?'pending':'paid',bukti_bayar_url:PROOF_BASE64||null,status:'pending',items_snapshot:CART.map(function(c){return {menu_id:c.id,nama:c.nama+(c.varLabel?' ('+c.varLabel+')':''),harga:c.harga,qty:c.qty,note:c.note||'',varLabel:c.varLabel||''};}),catatan:g('inp-catatan').value.trim()}).select('id');
+    var oRes=await _sb.from('online_orders').insert({restaurant_id:RESTAURANT_ID,delivery_type:DELIVERY_TYPE,delivery_addr_id:aRes.data[0].id,order_code:code,nama_pemesan:nama,hp_pemesan:hp,subtotal:sub,ongkir:ONGKIR,order_type:ORDER_METHOD,service_fee:svcAmt,diskon_voucher:vDiskon,kode_voucher:vKode,total:total,pay_method:PAY,pay_status:PAY==='cod'?'pending':'paid',bukti_bayar_url:PROOF_BASE64||null,status:'pending',items_snapshot:CART.map(function(c){return {menu_id:c.id,nama:c.nama+(c.varLabel?' ('+c.varLabel+')':''),harga:c.harga,qty:c.qty,note:c.note||'',varLabel:c.varLabel||''};}),catatan:g('inp-catatan').value.trim()}).select('id');
     if(oRes.error) throw oRes.error;
     await _sb.from('order_status_log').insert({order_id:oRes.data[0].id,status:'pending',keterangan:'Pesanan masuk, menunggu konfirmasi warung',by_role:'customer'});
     CART=[]; updateBadge(); closeCart(); _VOUCHER=null;
@@ -916,8 +935,10 @@ async function submitOrder(){
 
 /* STATUS */
 var SI={pending:{icon:'⏳',title:'Menunggu Konfirmasi',sub:'Pesananmu sedang dilihat warung.'},confirmed:{icon:'✅',title:'Pesanan Dikonfirmasi!',sub:'Warung sudah menerima pesananmu.'},preparing:{icon:'👨‍🍳',title:'Sedang Dimasak',sub:'Pesananmu sedang dimasak di dapur!'},on_delivery:{icon:'🛵',title:'Sedang Diantar!',sub:'Kurir sedang dalam perjalanan ke lokasimu.'},delivered:{icon:'🎉',title:'Pesanan Tiba!',sub:'Selamat menikmati hidangannya!'},cancelled:{icon:'❌',title:'Dibatalkan',sub:'Hubungi warung untuk info lebih lanjut.'}};
-var STEPS=['pending','confirmed','preparing','on_delivery','delivered'];
-var SLABELS={pending:'Pesanan diterima',confirmed:'Dikonfirmasi warung',preparing:'Sedang dimasak',on_delivery:'Sedang diantar',delivered:'Pesanan tiba'};
+var STEPS_DELIVERY=['pending','confirmed','preparing','on_delivery','delivered'];
+var STEPS_PICKUP=['pending','confirmed','preparing','ready_pickup','delivered'];
+var STEPS=STEPS_DELIVERY;
+var SLABELS={pending:'Pesanan diterima',confirmed:'Dikonfirmasi warung',preparing:'Sedang dimasak',ready_pickup:'Siap Diambil 🏃',on_delivery:'Sedang diantar',delivered:'Pesanan tiba'};
 
 async function showStatus(code,orderId){
   g('loading').classList.add('hidden');
@@ -933,6 +954,7 @@ async function showStatus(code,orderId){
   if(orderId){loadLog(orderId);subscribeStatus(orderId);}
 }
 
+function updateStepsForOrder(ord){ STEPS=(ord&&ord.order_type==='pickup')?STEPS_PICKUP:STEPS_DELIVERY; }
 function updateStatusUI(s){
   var i=SI[s]||SI.pending;
   g('st-icon').textContent=i.icon;
