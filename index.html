@@ -734,7 +734,7 @@ g('cart-open-btn').addEventListener('click',openCart);
 g('cart-close-btn').addEventListener('click',closeCart);
 g('backdrop').addEventListener('click',closeCart);
 
-function openCart(){ renderCartItems(); updateTotals(); g('backdrop').classList.add('open'); g('cart-modal').classList.add('open'); document.body.style.overflow='hidden'; }
+function openCart(){ renderCartItems(); updateTotals(); g('backdrop').classList.add('open'); g('cart-modal').classList.add('open'); document.body.style.overflow='hidden'; setDeliveryType(ORDER_METHOD); }
 function closeCart(){ g('backdrop').classList.remove('open'); g('cart-modal').classList.remove('open'); document.body.style.overflow=''; }
 
 function renderCartItems(){
@@ -854,15 +854,20 @@ function setDeliveryType(type) {
   ORDER_METHOD = type;
   var btnDel = g('btn-type-delivery'), btnPick = g('btn-type-pickup');
   var delSec = g('delivery-section'), pickSec = g('pickup-section');
-  var ongkirBox = g('ongkir-box');
+  var alamatGrp = g('alamat-group');
 
   if (type === 'delivery') {
-    btnDel.classList.add('active'); btnPick.classList.remove('active');
-    delSec.style.display = 'block'; pickSec.style.display = 'none';
+    if(btnDel) btnDel.classList.add('active');
+    if(btnPick) btnPick.classList.remove('active');
+    if(delSec) delSec.style.display = 'block';
+    if(pickSec) pickSec.style.display = 'none';
+    if(alamatGrp) alamatGrp.style.display = 'block';
   } else {
-    btnPick.classList.add('active'); btnDel.classList.remove('active');
-    delSec.style.display = 'none'; pickSec.style.display = 'block';
-    // Reset ongkir to 0 for pickup
+    if(btnPick) btnPick.classList.add('active');
+    if(btnDel) btnDel.classList.remove('active');
+    if(delSec) delSec.style.display = 'none';
+    if(pickSec) pickSec.style.display = 'block';
+    if(alamatGrp) alamatGrp.style.display = 'none';
     ONGKIR = 0;
     updateTotals();
   }
