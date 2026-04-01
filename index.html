@@ -258,6 +258,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   <div class="status-card">
     <div class="st-icon" id="st-icon">⏳</div>
     <div class="st-code" id="st-code"></div>
+    <div id="st-method-badge" style="display:none;background:#EDE9FE;color:#5B21B6;font-size:11px;font-weight:700;padding:3px 12px;border-radius:20px;margin-top:4px">🏃 Ambil Sendiri di Warung</div>
     <div class="st-title" id="st-title">Memproses...</div>
     <div class="st-sub" id="st-sub">Harap tunggu</div>
     <div class="timeline" id="st-timeline"></div>
@@ -949,9 +950,16 @@ async function showStatus(code,orderId){
   g('st-code').textContent='Kode: '+code;
   if(!_sb) _sb=window.supabase.createClient(SB_URL,SB_KEY);
   if(!orderId){
-    var res=await _sb.from('online_orders').select('id,status').eq('order_code',code);
-    if(res.data&&res.data[0]){orderId=res.data[0].id;updateStatusUI(res.data[0].status);}
-  }else{updateStatusUI('pending');}
+    var res=await _sb.from('online_orders').select('id,status,order_type').eq('order_code',code);
+    if(res.data&&res.data[0]){
+      orderId=res.data[0].id;
+      updateStepsForOrder(res.data[0]);
+      updateStatusUI(res.data[0].status);
+    }
+  }else{
+    updateStepsForOrder({order_type: ORDER_METHOD});
+    updateStatusUI('pending');
+  }
   if(orderId){loadLog(orderId);subscribeStatus(orderId);}
 }
 
@@ -961,6 +969,9 @@ function updateStatusUI(s){
   g('st-icon').textContent=i.icon;
   g('st-title').textContent=i.title;
   g('st-sub').textContent=i.sub;
+  // Show pickup/delivery badge
+  var badge=g('st-method-badge');
+  if(badge) badge.style.display=STEPS===STEPS_PICKUP?'inline':'none';
   updateBackBtn(s);
 }
 
