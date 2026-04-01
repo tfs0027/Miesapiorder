@@ -971,6 +971,7 @@ async function showStatus(code,orderId){
 }
 
 function updateStepsForOrder(ord){ STEPS=(ord&&ord.order_type==='pickup')?STEPS_PICKUP:STEPS_DELIVERY; }
+function updateStepsFromStatus(s){ if(s==='ready_pickup') STEPS=STEPS_PICKUP; else if(s==='on_delivery') STEPS=STEPS_DELIVERY; }
 function updateStatusUI(s){
   var i=SI[s]||SI.pending;
   g('st-icon').textContent=i.icon;
@@ -984,9 +985,13 @@ function updateStatusUI(s){
 
 async function loadLog(orderId){ var res=await _sb.from('order_status_log').select('*').eq('order_id',orderId).order('created_at'); if(res.data)renderTimeline(res.data); }
 
-function renderTimeline(logs){ var last=logs.length?logs[logs.length-1].status:'pending', ci=STEPS.indexOf(last), el=g('st-timeline'); el.innerHTML=STEPS.map(function(s,i){ var log=logs.find(function(l){return l.status===s;}), time=log?new Date(log.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}):'', cls=i<ci?'done':i===ci?'cur':'idle', ket=log&&log.keterangan&&log.keterangan.startsWith('Ditolak')?log.keterangan:''; return '<div class="tl-row"><div class="tl-dot '+cls+'">'+(i<ci?'✓':i===ci?'●':'')+'</div><div><div class="tl-label" style="color:'+(i<=ci?'var(--dark)':'var(--txt3)')+'">'+SLABELS[s]+'</div>'+(time?'<div class="tl-time">'+time+(log&&log.keterangan?' — '+log.keterangan:'')+'</div>':'')+(ket?'<div style="font-size:11px;background:#FCEBEB;color:#A32D2D;border-radius:6px;padding:4px 8px;margin-top:3px">'+ket+'</div>':'')+'</div></div>'; }).join('') + (function(){var cl=logs.find(function(l){return l.status==='cancelled';});if(!cl) return '';var ct=new Date(cl.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});var alasan=cl.keterangan||'';return '<div class="tl-row"><div class="tl-dot" style="background:#E24B4A;color:#fff">✕</div>'+'<div><div class="tl-label" style="color:#A32D2D">Pesanan Ditolak</div>'+(ct?'<div class="tl-time">'+ct+'</div>':'')+(alasan?'<div style="font-size:11px;background:#FCEBEB;color:#A32D2D;border-radius:6px;padding:4px 8px;margin-top:3px">'+alasan+'</div>':'')+'</div></div>';})(); }
+function renderTimeline(logs){
+  // Auto-detect pickup from logs
+  var hasPickup=logs.some(function(l){return l.status==='ready_pickup';});
+  if(hasPickup) STEPS=STEPS_PICKUP; else if(STEPS===STEPS_PICKUP&&!hasPickup&&logs.some(function(l){return l.status==='on_delivery';})) STEPS=STEPS_DELIVERY;
+  var last=logs.length?logs[logs.length-1].status:'pending', ci=STEPS.indexOf(last), el=g('st-timeline'); el.innerHTML=STEPS.map(function(s,i){ var log=logs.find(function(l){return l.status===s;}), time=log?new Date(log.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}):'', cls=i<ci?'done':i===ci?'cur':'idle', ket=log&&log.keterangan&&log.keterangan.startsWith('Ditolak')?log.keterangan:''; return '<div class="tl-row"><div class="tl-dot '+cls+'">'+(i<ci?'✓':i===ci?'●':'')+'</div><div><div class="tl-label" style="color:'+(i<=ci?'var(--dark)':'var(--txt3)')+'">'+SLABELS[s]+'</div>'+(time?'<div class="tl-time">'+time+(log&&log.keterangan?' — '+log.keterangan:'')+'</div>':'')+(ket?'<div style="font-size:11px;background:#FCEBEB;color:#A32D2D;border-radius:6px;padding:4px 8px;margin-top:3px">'+ket+'</div>':'')+'</div></div>'; }).join('') + (function(){var cl=logs.find(function(l){return l.status==='cancelled';});if(!cl) return '';var ct=new Date(cl.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});var alasan=cl.keterangan||'';return '<div class="tl-row"><div class="tl-dot" style="background:#E24B4A;color:#fff">✕</div>'+'<div><div class="tl-label" style="color:#A32D2D">Pesanan Ditolak</div>'+(ct?'<div class="tl-time">'+ct+'</div>':'')+(alasan?'<div style="font-size:11px;background:#FCEBEB;color:#A32D2D;border-radius:6px;padding:4px 8px;margin-top:3px">'+alasan+'</div>':'')+'</div></div>';})(); }
 
-function subscribeStatus(orderId){ if(_sub)_sb.removeChannel(_sub); _sub=_sb.channel('s_'+orderId).on('postgres_changes',{event:'INSERT',schema:'public',table:'order_status_log',filter:'order_id=eq.'+orderId},function(p){updateStatusUI(p.new.status);loadLog(orderId);toast((SI[p.new.status]||{}).title||'Status diperbarui');}).subscribe(); }
+function subscribeStatus(orderId){ if(_sub)_sb.removeChannel(_sub); _sub=_sb.channel('s_'+orderId).on('postgres_changes',{event:'INSERT',schema:'public',table:'order_status_log',filter:'order_id=eq.'+orderId},function(p){updateStepsFromStatus(p.new.status);updateStatusUI(p.new.status);loadLog(orderId);toast((SI[p.new.status]||{}).title||'Status diperbarui');}).subscribe(); }
 
 g('cart-bar-btn').addEventListener('click',openCart);
 
