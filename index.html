@@ -466,7 +466,7 @@ async function initKonfirmMode(orderId) {
 
   try {
     var res = await _sb.from('online_orders')
-      .select('*,delivery_addresses(*)')
+      .select('*')
       .eq('id', orderId)
       .single();
     var o = res.data;
@@ -482,7 +482,14 @@ async function initKonfirmMode(orderId) {
       return;
     }
 
-    var addr = o.delivery_addresses || {};
+    // Fetch address separately
+    var addr = {};
+    if (o.delivery_addr_id) {
+      try {
+        var aRes = await _sb.from('delivery_addresses').select('*').eq('id', o.delivery_addr_id).single();
+        if (aRes.data) addr = aRes.data;
+      } catch(ae) {}
+    }
     var items = (o.items_snapshot||[]).map(function(i){ return i.qty + 'x ' + i.nama; }).join(', ');
     var detail = [
       '<b>Pesanan:</b> ' + (o.order_code||'-'),
