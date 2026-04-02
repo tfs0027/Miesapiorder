@@ -948,6 +948,7 @@ var STEPS_DELIVERY=['pending','confirmed','preparing','on_delivery','delivered']
 var STEPS_PICKUP=['pending','confirmed','preparing','ready_pickup','delivered'];
 var STEPS=STEPS_DELIVERY;
 var SLABELS={pending:'Pesanan diterima',confirmed:'Dikonfirmasi warung',preparing:'Sedang dimasak',ready_pickup:'Siap Diambil 🏃',on_delivery:'Sedang diantar',delivered:'Pesanan tiba'};
+var SLABELS_PICKUP={pending:'Pesanan diterima',confirmed:'Dikonfirmasi warung',preparing:'Sedang dimasak',ready_pickup:'Siap Diambil 🏃',delivered:'Pesanan sudah diambil'};
 
 async function showStatus(code,orderId){
   g('loading').classList.add('hidden');
@@ -973,7 +974,13 @@ async function showStatus(code,orderId){
 function updateStepsForOrder(ord){ STEPS=(ord&&ord.order_type==='pickup')?STEPS_PICKUP:STEPS_DELIVERY; }
 function updateStepsFromStatus(s){ if(s==='ready_pickup') STEPS=STEPS_PICKUP; else if(s==='on_delivery') STEPS=STEPS_DELIVERY; }
 function updateStatusUI(s){
-  var i=SI[s]||SI.pending;
+  var i=Object.assign({},SI[s]||SI.pending);
+  // Override delivered text for pickup orders
+  if(s==='delivered' && STEPS===STEPS_PICKUP){
+    i.icon='🎉';
+    i.title='Pesanan Sudah Diambil!';
+    i.sub='Terima kasih telah mengambil pesanan di warung kami!';
+  }
   g('st-icon').textContent=i.icon;
   g('st-title').textContent=i.title;
   g('st-sub').textContent=i.sub;
@@ -989,7 +996,7 @@ function renderTimeline(logs){
   // Auto-detect pickup from logs
   var hasPickup=logs.some(function(l){return l.status==='ready_pickup';});
   if(hasPickup) STEPS=STEPS_PICKUP; else if(STEPS===STEPS_PICKUP&&!hasPickup&&logs.some(function(l){return l.status==='on_delivery';})) STEPS=STEPS_DELIVERY;
-  var last=logs.length?logs[logs.length-1].status:'pending', ci=STEPS.indexOf(last), el=g('st-timeline'); el.innerHTML=STEPS.map(function(s,i){ var log=logs.find(function(l){return l.status===s;}), time=log?new Date(log.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}):'', cls=i<ci?'done':i===ci?'cur':'idle', ket=log&&log.keterangan&&log.keterangan.startsWith('Ditolak')?log.keterangan:''; return '<div class="tl-row"><div class="tl-dot '+cls+'">'+(i<ci?'✓':i===ci?'●':'')+'</div><div><div class="tl-label" style="color:'+(i<=ci?'var(--dark)':'var(--txt3)')+'">'+SLABELS[s]+'</div>'+(time?'<div class="tl-time">'+time+(log&&log.keterangan?' — '+log.keterangan:'')+'</div>':'')+(ket?'<div style="font-size:11px;background:#FCEBEB;color:#A32D2D;border-radius:6px;padding:4px 8px;margin-top:3px">'+ket+'</div>':'')+'</div></div>'; }).join('') + (function(){var cl=logs.find(function(l){return l.status==='cancelled';});if(!cl) return '';var ct=new Date(cl.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});var alasan=cl.keterangan||'';return '<div class="tl-row"><div class="tl-dot" style="background:#E24B4A;color:#fff">✕</div>'+'<div><div class="tl-label" style="color:#A32D2D">Pesanan Ditolak</div>'+(ct?'<div class="tl-time">'+ct+'</div>':'')+(alasan?'<div style="font-size:11px;background:#FCEBEB;color:#A32D2D;border-radius:6px;padding:4px 8px;margin-top:3px">'+alasan+'</div>':'')+'</div></div>';})(); }
+  var last=logs.length?logs[logs.length-1].status:'pending', ci=STEPS.indexOf(last), el=g('st-timeline'); el.innerHTML=STEPS.map(function(s,i){ var log=logs.find(function(l){return l.status===s;}), time=log?new Date(log.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}):'', cls=i<ci?'done':i===ci?'cur':'idle', ket=log&&log.keterangan&&log.keterangan.startsWith('Ditolak')?log.keterangan:''; return '<div class="tl-row"><div class="tl-dot '+cls+'">'+(i<ci?'✓':i===ci?'●':'')+'</div><div><div class="tl-label" style="color:'+(i<=ci?'var(--dark)':'var(--txt3)')+'">'+(STEPS===STEPS_PICKUP&&SLABELS_PICKUP[s]?SLABELS_PICKUP[s]:SLABELS[s])+'</div>'+(time?'<div class="tl-time">'+time+(log&&log.keterangan?' — '+log.keterangan:'')+'</div>':'')+(ket?'<div style="font-size:11px;background:#FCEBEB;color:#A32D2D;border-radius:6px;padding:4px 8px;margin-top:3px">'+ket+'</div>':'')+'</div></div>'; }).join('') + (function(){var cl=logs.find(function(l){return l.status==='cancelled';});if(!cl) return '';var ct=new Date(cl.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});var alasan=cl.keterangan||'';return '<div class="tl-row"><div class="tl-dot" style="background:#E24B4A;color:#fff">✕</div>'+'<div><div class="tl-label" style="color:#A32D2D">Pesanan Ditolak</div>'+(ct?'<div class="tl-time">'+ct+'</div>':'')+(alasan?'<div style="font-size:11px;background:#FCEBEB;color:#A32D2D;border-radius:6px;padding:4px 8px;margin-top:3px">'+alasan+'</div>':'')+'</div></div>';})(); }
 
 function subscribeStatus(orderId){ if(_sub)_sb.removeChannel(_sub); _sub=_sb.channel('s_'+orderId).on('postgres_changes',{event:'INSERT',schema:'public',table:'order_status_log',filter:'order_id=eq.'+orderId},function(p){updateStepsFromStatus(p.new.status);updateStatusUI(p.new.status);loadLog(orderId);toast((SI[p.new.status]||{}).title||'Status diperbarui');}).subscribe(); }
 
