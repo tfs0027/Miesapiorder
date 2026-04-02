@@ -191,6 +191,19 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .menu-grid.list-view .menu-body .menu-name{font-size:13px}
 .menu-grid.list-view .card-qty{bottom:10px;right:8px}
 .menu-grid.list-view .btn-add{bottom:10px;right:8px;top:auto}
+
+/* ── Konfirm Kurir Page ─────────────────────────────────────────── */
+#konfirm-page{display:none;min-height:100vh;background:var(--bg);align-items:center;justify-content:center;flex-direction:column;padding:24px;text-align:center}
+#konfirm-page.active{display:flex}
+.konfirm-card{background:var(--bg2,#fff);border-radius:20px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 4px 32px rgba(0,0,0,.10)}
+.konfirm-icon{font-size:56px;margin-bottom:8px}
+.konfirm-title{font-size:20px;font-weight:800;margin-bottom:4px}
+.konfirm-sub{font-size:13px;color:var(--txt2);margin-bottom:20px;line-height:1.6}
+.konfirm-detail{background:var(--bg);border-radius:12px;padding:12px 14px;text-align:left;margin-bottom:16px;font-size:12px;line-height:1.9}
+.konfirm-detail b{color:var(--dark)}
+.btn-konfirm{width:100%;padding:16px;background:var(--green-dk,#00B894);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;margin-bottom:10px}
+.btn-konfirm:disabled{background:var(--brd);color:var(--txt2);cursor:not-allowed}
+.btn-konfirm-selesai{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:none}
 </style>
 </head>
 <body>
@@ -376,6 +389,23 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
+
+<!-- Kurir Konfirm Delivery Page -->
+<div id="konfirm-page">
+  <div class="konfirm-card">
+    <div class="konfirm-icon" id="kfm-icon">🛵</div>
+    <div class="konfirm-title" id="kfm-title">Konfirmasi Pengantaran</div>
+    <div class="konfirm-sub" id="kfm-sub">Tekan tombol di bawah setelah pesanan berhasil diterima pelanggan</div>
+    <div class="konfirm-detail" id="kfm-detail">Memuat detail pesanan...</div>
+    <button class="btn-konfirm" id="btn-konfirm-tiba" onclick="konfirmTibaKurir()">
+      ✅ Pesanan Sudah Diterima Pelanggan
+    </button>
+    <div id="kfm-done" style="display:none;padding:16px;background:#D1FAE5;border-radius:12px;color:#065F46;font-weight:700;font-size:14px">
+      🎉 Terima kasih! Status pesanan sudah diperbarui.
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- Varian Modal -->
@@ -424,6 +454,80 @@ function fmt(n){ return 'Rp '+(n||0).toLocaleString('id-ID'); }
 function toast(msg,dur){ var e=document.getElementById('toast'); e.textContent=msg; e.classList.add('show'); setTimeout(function(){e.classList.remove('show');},dur||2500); }
 function g(id){ return document.getElementById(id); }
 
+
+/* ── KURIR KONFIRM MODE ─────────────────────────────────────────── */
+async function initKonfirmMode(orderId) {
+  g('loading').classList.add('hidden');
+  g('main-header').style.display = 'none';
+  g('menu-page').style.display = 'none';
+  var kp = g('konfirm-page'); if (kp) kp.classList.add('active');
+
+  if (!_sb) _sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+  try {
+    var res = await _sb.from('online_orders')
+      .select('*,delivery_addresses(*)')
+      .eq('id', orderId)
+      .single();
+    var o = res.data;
+    if (!o) { g('kfm-sub').textContent = 'Pesanan tidak ditemukan.'; return; }
+
+    // If already delivered
+    if (o.status === 'delivered') {
+      g('kfm-icon').textContent = '🎉';
+      g('kfm-title').textContent = 'Sudah Dikonfirmasi';
+      g('kfm-sub').textContent = 'Pesanan ini sudah tercatat selesai.';
+      g('btn-konfirm-tiba').style.display = 'none';
+      g('kfm-done').style.display = 'block';
+      return;
+    }
+
+    var addr = o.delivery_addresses || {};
+    var items = (o.items_snapshot||[]).map(function(i){ return i.qty + 'x ' + i.nama; }).join(', ');
+    var detail = [
+      '<b>Pesanan:</b> ' + (o.order_code||'-'),
+      '<b>Penerima:</b> ' + (o.nama_pemesan||'-'),
+      '<b>HP:</b> ' + (o.hp_pemesan||'-'),
+      '<b>Alamat:</b> ' + (addr.alamat_lengkap||'-'),
+      '<b>Menu:</b> ' + (items||'-'),
+      '<b>Total:</b> Rp ' + ((o.total||0).toLocaleString('id-ID')),
+      '<b>Bayar:</b> ' + ({cod:'COD (bayar di tempat)', qris:'QRIS', transfer:'Transfer'}[o.pay_method]||o.pay_method||'-')
+    ].join('<br>');
+    g('kfm-detail').innerHTML = detail;
+
+    // Save orderId for confirm action
+    g('btn-konfirm-tiba').dataset.oid = orderId;
+  } catch(e) {
+    g('kfm-sub').textContent = 'Gagal memuat data: ' + e.message;
+  }
+}
+
+async function konfirmTibaKurir() {
+  var btn = g('btn-konfirm-tiba');
+  var orderId = btn && btn.dataset.oid;
+  if (!orderId) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ Menyimpan...';
+  try {
+    var tiba = new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+    await _sb.from('online_orders').update({status:'delivered'}).eq('id', orderId);
+    await _sb.from('order_status_log').insert({
+      order_id: orderId, status: 'delivered',
+      keterangan: '✅ Dikonfirmasi kurir · tiba pukul ' + tiba,
+      by_role: 'kurir'
+    });
+    g('kfm-icon').textContent = '🎉';
+    g('kfm-title').textContent = 'Terima Kasih!';
+    g('kfm-sub').textContent = 'Pengantaran selesai dicatat pukul ' + tiba;
+    btn.style.display = 'none';
+    g('kfm-done').style.display = 'block';
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '✅ Pesanan Sudah Diterima Pelanggan';
+    g('kfm-sub').textContent = 'Gagal: ' + e.message + ' — coba lagi';
+  }
+}
+
 /* INIT */
 
 /* MENU VIEW TOGGLE */
@@ -446,6 +550,8 @@ function setMenuView(view) {
 async function init(){
   var params=new URLSearchParams(location.search);
   var oc=params.get('order');
+  var kfm=params.get('konfirm');
+  if(kfm){ _sb=window.supabase.createClient(SB_URL,SB_KEY); await initKonfirmMode(kfm); return; }
   if(oc){ await showStatus(oc); return; }
   try{
     _sb=window.supabase.createClient(SB_URL,SB_KEY);
