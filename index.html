@@ -1013,7 +1013,16 @@ g('btn-back').addEventListener('click',function(){
   if(_sub){_sb.removeChannel(_sub);_sub=null;}
   // Reset state for new order
   CART=[]; _VOUCHER=null; ORDER_METHOD='delivery';
+  // Reset ONGKIR and GPS for fresh order
+  ONGKIR=0; USER_LAT=null; USER_LNG=null;
+  // Reset GPS UI
+  var locRes=g('loc-result'); if(locRes) locRes.style.display='none';
+  var ongkirBox=g('ongkir-box'); if(ongkirBox) ongkirBox.style.display='none';
+  var minNote=g('min-ongkir-note'); if(minNote) minNote.style.display='none';
+  var btnLoc=g('btn-loc'); if(btnLoc){ btnLoc.textContent='📍 Deteksi Lokasi Saya (GPS)'; btnLoc.disabled=false; }
+  var inpAlamat=g('inp-alamat'); if(inpAlamat) inpAlamat.value='';
   updateBadge();
+  updateTotals();
   // Reset btn-order state
   var btnOrder=g('btn-order');
   if(btnOrder){ btnOrder.disabled=false; btnOrder.textContent='Buat Pesanan'; btnOrder.style.background=''; }
@@ -1021,7 +1030,7 @@ g('btn-back').addEventListener('click',function(){
   var vInp=g('inp-voucher'); if(vInp) vInp.value='';
   var vStat=g('voucher-status'); if(vStat) vStat.style.display='none';
   // Reset payment
-  PAY='cod'; PROOF_BASE64=null; ONGKIR=0;
+  PAY='cod'; PROOF_BASE64=null;
   var payCod=g('pay-cod'); if(payCod) payCod.classList.add('selected');
   var payQris=g('pay-qris'); if(payQris) payQris.classList.remove('selected');
   var payTrf=g('pay-transfer'); if(payTrf) payTrf.classList.remove('selected');
