@@ -204,6 +204,32 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .btn-konfirm{width:100%;padding:16px;background:var(--green-dk,#00B894);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;margin-bottom:10px}
 .btn-konfirm:disabled{background:var(--brd);color:var(--txt2);cursor:not-allowed}
 .btn-konfirm-selesai{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;display:none}
+
+/* ── Order Page Responsive ── */
+@media (max-width:639px){
+  .header-tagline{font-size:12px!important}
+  .hero{padding:20px 16px!important}
+  .hero-title{font-size:22px!important}
+  .cat-pill{font-size:12px!important;padding:6px 12px!important}
+  .menu-grid{grid-template-columns:1fr 1fr!important;gap:10px!important}
+  .menu-name{font-size:13px!important}
+  .cart-bar{bottom:10px!important;border-radius:14px!important}
+  .pay-options{grid-template-columns:1fr 1fr 1fr!important}
+  .pay-icon{font-size:20px!important}
+  .pay-name{font-size:11px!important}
+  .pay-desc{display:none!important}
+  .tot-box{padding:10px 12px!important}
+  .cart-footer{padding:10px 16px 20px!important}
+}
+@media (min-width:640px){
+  .menu-grid{grid-template-columns:repeat(3,1fr)!important}
+  .container{max-width:600px;margin:0 auto}
+}
+@media (min-width:1024px){
+  .container{max-width:720px}
+  .menu-grid{grid-template-columns:repeat(4,1fr)!important}
+  .cart-modal{max-width:560px!important}
+}
 </style>
 </head>
 <body>
