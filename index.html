@@ -394,12 +394,14 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
     <div class="sec-title">📋 Ringkasan</div>
     <!-- Voucher input -->
     <div style="margin-bottom:10px">
-      <div style="font-size:12px;font-weight:600;margin-bottom:6px">🎟️ Kode Voucher / Diskon</div>
+      <div style="font-size:12px;font-weight:600;margin-bottom:6px">🎟️ Voucher / Diskon <span style="font-size:10px;font-weight:400;color:var(--txt3)">(maks 2: 1 diskon harga + 1 diskon ongkir)</span></div>
       <div style="display:flex;gap:8px">
         <input type="text" id="inp-voucher" placeholder="Masukkan kode voucher..." style="flex:1;padding:10px 12px;border:1.5px solid var(--brd);border-radius:10px;font-size:13px;font-family:inherit;color:var(--dark);background:var(--bg);text-transform:uppercase;outline:none" oninput="this.value=this.value.toUpperCase()">
         <button onclick="applyVoucher()" style="padding:10px 14px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer">Pakai</button>
       </div>
       <div id="voucher-status" style="font-size:11px;margin-top:6px;display:none"></div>
+      <!-- List voucher yang aktif -->
+      <div id="voucher-applied-list" style="margin-top:6px"></div>
     </div>
 
   </div><!-- /cart-body -->
@@ -408,7 +410,8 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
       <div class="tot-row"><span>Subtotal</span><span id="tot-sub">Rp 0</span></div>
       <div class="tot-row"><span>Ongkos Kirim</span><span id="tot-ongkir">Rp 0</span></div>
       <div class="tot-row" id="tot-svc-row" style="display:none"><span id="tot-svc-nm">Biaya Layanan</span><span id="tot-svc">Rp 0</span></div>
-      <div class="tot-row" id="tot-voucher-row" style="display:none;color:var(--green-dk)"><span id="tot-voucher-nm">Voucher</span><span id="tot-voucher">-Rp 0</span></div>
+      <div class="tot-row" id="tot-voucher-row" style="display:none;color:var(--green-dk)"><span id="tot-voucher-nm">🏷️ Voucher Harga</span><span id="tot-voucher">-Rp 0</span></div>
+      <div class="tot-row" id="tot-voucher-ongkir-row" style="display:none;color:var(--green-dk)"><span id="tot-voucher-ongkir-nm">🏷️ Voucher Ongkir</span><span id="tot-voucher-ongkir">-Rp 0</span></div>
       <div class="tot-row grand"><span>Total</span><span id="tot-total">Rp 0</span></div>
     </div>
     <button class="btn-order" id="btn-order">Buat Pesanan</button>
@@ -474,7 +477,7 @@ var ONGKIR_PER_KM = 3500;
 var WARUNG_LAT    = -7.648514182449933;
 var WARUNG_LNG    = 111.529115128836;
 
-var _sb=null, MENUS=[], CART=[], PAY='cod', ONGKIR=0, ORDER_METHOD='delivery', USER_LAT=null, USER_LNG=null, _sub=null, _VOUCHER=null;
+var _sb=null, MENUS=[], CART=[], PAY='cod', ONGKIR=0, ORDER_METHOD='delivery', USER_LAT=null, USER_LNG=null, _sub=null, _VOUCHER=null, _VOUCHERS=[];
 
 function fmt(n){ return 'Rp '+(n||0).toLocaleString('id-ID'); }
 function toast(msg,dur){ var e=document.getElementById('toast'); e.textContent=msg; e.classList.add('show'); setTimeout(function(){e.classList.remove('show');},dur||2500); }
@@ -874,34 +877,29 @@ function updateTotals(){
   // Service charge
   var svc=calcService(sub);
   var svcNm=cfg?cfg.serviceNama||'Biaya Layanan':'Biaya Layanan';
-  // Voucher discount — hitung ulang dari data voucher + ONGKIR saat ini
-  var _v=(typeof _VOUCHER!=='undefined')?_VOUCHER:null;
-  var vNm = _v ? 'Voucher '+_v.kode : 'Voucher';
-  var vDiskonHarga  = 0;
-  var vDiskonOngkir = 0;
-
-  if (_v && _v.data) {
-    var vd = _v.data;
-    if (vd.tipe === 'ongkir') {
-      // Recalculate setiap updateTotals karena ONGKIR bisa berubah (setelah GPS)
-      vDiskonOngkir = vd.nilai >= 100 ? ONGKIR : Math.round(ONGKIR * (vd.nilai||0) / 100);
-      vDiskonOngkir = Math.min(vDiskonOngkir, ONGKIR);
-      // Update di _VOUCHER agar submitOrder juga dapat nilai terbaru
-      _v.diskonOngkir = vDiskonOngkir;
-    } else if (vd.tipe === 'flat') {
-      vDiskonHarga = vd.nilai || 0;
-      vDiskonHarga = Math.min(vDiskonHarga, sub);
-    } else { // pct
-      vDiskonHarga = Math.round(sub * (vd.nilai||0) / 100);
-      if (vd.maksNominal > 0) vDiskonHarga = Math.min(vDiskonHarga, vd.maksNominal);
-      vDiskonHarga = Math.min(vDiskonHarga, sub);
+  // Voucher discount — hitung ulang dari _VOUCHERS array
+  var vDiskonHarga=0, vDiskonOngkir=0;
+  var vNmHarga='🏷️ Voucher Harga', vNmOngkir='🏷️ Voucher Ongkir';
+  (_VOUCHERS||[]).forEach(function(v){
+    if(!v||!v.data) return;
+    var vd=v.data;
+    if(vd.tipe==='ongkir_flat'){
+      v.diskonOngkir=Math.min(vd.nilai||0, ONGKIR); vDiskonOngkir+=v.diskonOngkir; vNmOngkir='🏷️ '+v.kode;
+    } else if(vd.tipe==='ongkir_pct'){
+      v.diskonOngkir=Math.min(Math.round(ONGKIR*(vd.nilai||0)/100),ONGKIR); vDiskonOngkir+=v.diskonOngkir; vNmOngkir='🏷️ '+v.kode;
+    } else if(vd.tipe==='flat'){
+      v.diskon=Math.min(vd.nilai||0,sub); vDiskonHarga+=v.diskon; vNmHarga='🏷️ '+v.kode;
+    } else {
+      var d=Math.round(sub*(vd.nilai||0)/100);
+      if(vd.maksNominal>0) d=Math.min(d,vd.maksNominal);
+      v.diskon=Math.min(d,sub); vDiskonHarga+=v.diskon; vNmHarga='🏷️ '+v.kode;
     }
-    _v.diskon = vDiskonHarga; // update juga diskon harga
-  }
+  });
+  // Update applied list (diskon bisa berubah saat ONGKIR update setelah GPS)
+  renderVoucherAppliedList();
 
-  // Ongkir setelah voucher ongkir
-  var ongkirFinal = Math.max(0, ONGKIR - vDiskonOngkir);
-  var total = Math.max(0, sub + ongkirFinal + svc - vDiskonHarga);
+  var ongkirFinal=Math.max(0, ONGKIR-vDiskonOngkir);
+  var total=Math.max(0, sub+ongkirFinal+svc-vDiskonHarga);
 
   g('tot-sub').textContent=fmt(sub);
 
@@ -922,10 +920,16 @@ function updateTotals(){
   var svcNmEl=g('tot-svc-nm'); if(svcNmEl) svcNmEl.textContent=svcNm;
 
   // Baris voucher potongan harga
+  // Baris diskon harga
   var vRow=g('tot-voucher-row');
   if(vRow) vRow.style.display=vDiskonHarga>0?'':'none';
   var vEl=g('tot-voucher'); if(vEl) vEl.textContent='-'+fmt(vDiskonHarga);
-  var vNmEl=g('tot-voucher-nm'); if(vNmEl) vNmEl.textContent=vNm;
+  var vNmEl=g('tot-voucher-nm'); if(vNmEl) vNmEl.textContent=vNmHarga;
+  // Baris diskon ongkir
+  var voRow=g('tot-voucher-ongkir-row');
+  if(voRow) voRow.style.display=vDiskonOngkir>0?'':'none';
+  var voEl=g('tot-voucher-ongkir'); if(voEl) voEl.textContent='-'+fmt(vDiskonOngkir);
+  var voNmEl=g('tot-voucher-ongkir-nm'); if(voNmEl) voNmEl.textContent=vNmOngkir;
 
   g('tot-total').textContent=fmt(total);
 }
@@ -1006,81 +1010,117 @@ g('btn-loc').addEventListener('click',function(){
 /* SUBMIT */
 g('btn-order').addEventListener('click',submitOrder);
 /* VOUCHER */
-function applyVoucher(){
-  var kode=(g('inp-voucher').value||'').trim().toUpperCase();
-  var statusEl=g('voucher-status');
-  if(!kode){ toast('Masukkan kode voucher'); return; }
-  var vouchers=(window._RESTO&&window._RESTO.cfg&&window._RESTO.cfg.vouchers)||[];
-  var v=vouchers.find(function(x){ return x.kode===kode && x.aktif; });
-  if(!v){
-    statusEl.style.display='block';
-    statusEl.style.color='var(--red-dk)';
-    statusEl.innerHTML='❌ Kode tidak valid atau sudah tidak aktif';
-    _VOUCHER=null; updateTotals(); return;
-  }
-  if(v.maksUse>0 && (v.usedCount||0)>=v.maksUse){
-    statusEl.style.display='block';
-    statusEl.style.color='var(--red-dk)';
-    statusEl.innerHTML='❌ Kode sudah mencapai batas penggunaan';
-    _VOUCHER=null; updateTotals(); return;
-  }
-  var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0);
-  var diskonHarga=0, diskonOngkir=0;
 
-  // Voucher ongkir tidak berlaku untuk pickup
-  if(v.tipe==='ongkir' && ORDER_METHOD==='pickup'){
-    statusEl.style.display='block';
-    statusEl.style.color='var(--amber-dk)';
-    statusEl.innerHTML='⚠️ Voucher ini hanya untuk pengiriman, bukan ambil sendiri.';
-    _VOUCHER=null; updateTotals(); return;
-  }
-  if(v.tipe==='ongkir' && ONGKIR===0){
-    // Ongkir belum dihitung (GPS belum dideteksi) — simpan voucher dulu, diskon akan dihitung saat ongkir tersedia
-    _VOUCHER={kode:kode, diskon:0, diskonOngkir:0, totalDiskon:0, data:v};
-    statusEl.style.display='block';
-    statusEl.style.color='var(--blue-dk)';
-    statusEl.innerHTML='✅ Voucher <b>'+kode+'</b> tersimpan! Diskon ongkir akan dihitung setelah kamu deteksi lokasi.'
-      +(v.ket?' <span style="opacity:.7">('+v.ket+')</span>':'')
-      +' <span onclick="clearVoucher()" style="cursor:pointer;margin-left:6px;text-decoration:underline;color:var(--red-dk);font-size:10px">Hapus</span>';
-    updateTotals(); return;
-  }
-  if(v.tipe==='ongkir'){
-    // Potongan ongkir: nilai=100 berarti gratis ongkir, nilai<100 berarti potongan %
-    if(v.nilai>=100){
-      diskonOngkir=ONGKIR; // gratis ongkir
-    } else {
-      diskonOngkir=Math.round(ONGKIR*(v.nilai||0)/100);
-    }
-    diskonOngkir=Math.min(diskonOngkir, ONGKIR); // tidak melebihi ongkir
-  } else if(v.tipe==='flat'){
-    diskonHarga=v.nilai||0;
-    diskonHarga=Math.min(diskonHarga, sub);
-  } else { // pct
-    diskonHarga=Math.round(sub*(v.nilai||0)/100);
-    if(v.maksNominal>0) diskonHarga=Math.min(diskonHarga, v.maksNominal);
-    diskonHarga=Math.min(diskonHarga, sub);
-  }
+// ── Voucher helpers ───────────────────────────────────────────────────────
+function isOngkirType(tipe){ return tipe==='ongkir_pct'||tipe==='ongkir_flat'; }
+function isHargaType(tipe) { return tipe==='pct'||tipe==='flat'; }
+function getVoucherGroupLabel(tipe){
+  return isOngkirType(tipe) ? 'ongkir' : 'harga';
+}
 
-  var totalDiskon=diskonHarga+diskonOngkir;
-  _VOUCHER={kode:kode, diskon:diskonHarga, diskonOngkir:diskonOngkir, totalDiskon:totalDiskon, data:v};
+function renderVoucherAppliedList(){
+  var el=g('voucher-applied-list'); if(!el) return;
+  if(!_VOUCHERS.length){ el.innerHTML=''; return; }
+  el.innerHTML=_VOUCHERS.map(function(v){
+    var isOngkir=isOngkirType(v.data.tipe);
+    var diskonLabel=isOngkir
+      ? (v.diskonOngkir>0?'-'+fmt(v.diskonOngkir)+' ongkir':'menunggu lokasi...')
+      : '-'+fmt(v.diskon)+' harga';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;'
+      +'background:'+(isOngkir?'var(--blue-bg)':'var(--green-bg)')
+      +';border:1px solid '+(isOngkir?'#93C5FD':'#6EE7B7')
+      +';border-radius:8px;padding:6px 10px;margin-top:4px;font-size:11px">'
+      +'<div><b>'+v.kode+'</b> <span style="color:var(--txt2)">'
+      +(isOngkir?'🚚 Diskon Ongkir':'🏷️ Diskon Harga')+'</span> '
+      +'<span style="font-weight:700;color:'+(isOngkir?'var(--blue-dk)':'var(--green-dk)')+'">'+diskonLabel+'</span>'
+      +(v.data.ket?' <span style="color:var(--txt3);">('+v.data.ket+')</span>':'')
+      +'</div>'
+      +'<button onclick="removeVoucher(\''+ v.kode +'\',this)" style="background:none;border:none;cursor:pointer;font-size:14px;padding:0 2px;color:var(--red-dk)" title="Hapus voucher">✕</button>'
+      +'</div>';
+  }).join('');
+}
 
-  statusEl.style.display='block';
-  statusEl.style.color='var(--green-dk)';
-  var hematLabel = v.tipe==='ongkir'
-    ? (diskonOngkir>=ONGKIR&&ONGKIR>0 ? 'Gratis ongkir!' : 'Ongkir hemat <b>'+fmt(diskonOngkir)+'</b>')
-    : 'Hemat <b>'+fmt(diskonHarga)+'</b>';
-  statusEl.innerHTML='✅ Voucher <b>'+kode+'</b> berhasil! '+hematLabel
-    +(v.ket?' <span style="opacity:.7">('+v.ket+')</span>':'')
-    +' <span onclick="clearVoucher()" style="cursor:pointer;margin-left:6px;text-decoration:underline;color:var(--red-dk);font-size:10px">Hapus</span>';
+function removeVoucher(kode){
+  _VOUCHERS=_VOUCHERS.filter(function(v){return v.kode!==kode;});
+  // Sync _VOUCHER (legacy, pakai voucher harga pertama)
+  var h=_VOUCHERS.find(function(v){return isHargaType(v.data.tipe);});
+  _VOUCHER=h||_VOUCHERS[0]||null;
+  renderVoucherAppliedList();
   updateTotals();
 }
 
+function applyVoucher(){
+  var kode=(g('inp-voucher').value||'').trim().toUpperCase();
+  var statusEl=g('voucher-status');
+  if(!kode){ showStatus('Masukkan kode voucher','warn'); return; }
+
+  var vouchers=(window._RESTO&&window._RESTO.cfg&&window._RESTO.cfg.vouchers)||[];
+  var v=vouchers.find(function(x){ return x.kode===kode && x.aktif; });
+  if(!v){
+    showStatus('❌ Kode tidak valid atau sudah tidak aktif','err'); return;
+  }
+  if(v.maksUse>0 && (v.usedCount||0)>=v.maksUse){
+    showStatus('❌ Kode sudah mencapai batas penggunaan','err'); return;
+  }
+  // Cek duplikat kode
+  if(_VOUCHERS.find(function(x){return x.kode===kode;})){
+    showStatus('⚠️ Kode '+kode+' sudah dipakai','warn'); return;
+  }
+  // Cek tipe: tidak boleh 2 voucher dengan grup yang sama
+  var grup=getVoucherGroupLabel(v.tipe); // 'harga' atau 'ongkir'
+  var sameTipe=_VOUCHERS.find(function(x){return getVoucherGroupLabel(x.data.tipe)===grup;});
+  if(sameTipe){
+    showStatus('❌ Sudah ada voucher '+grup+' ('+sameTipe.kode+'). Tidak bisa 2 voucher tipe sama.','err'); return;
+  }
+  // Voucher ongkir tidak berlaku untuk pickup
+  if(isOngkirType(v.tipe) && ORDER_METHOD==='pickup'){
+    showStatus('⚠️ Voucher ongkir hanya untuk pengiriman, bukan ambil sendiri.','warn'); return;
+  }
+
+  var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0);
+  var diskonHarga=0, diskonOngkir=0;
+
+  if(v.tipe==='ongkir_flat'){
+    diskonOngkir=Math.min(v.nilai||0, ONGKIR);
+  } else if(v.tipe==='ongkir_pct'){
+    diskonOngkir=Math.min(Math.round(ONGKIR*(v.nilai||0)/100), ONGKIR);
+  } else if(v.tipe==='flat'){
+    diskonHarga=Math.min(v.nilai||0, sub);
+  } else { // pct
+    diskonHarga=Math.round(sub*(v.nilai||0)/100);
+    if(v.maksNominal>0) diskonHarga=Math.min(diskonHarga,v.maksNominal);
+    diskonHarga=Math.min(diskonHarga,sub);
+  }
+
+  var entry={kode:kode, diskon:diskonHarga, diskonOngkir:diskonOngkir, totalDiskon:diskonHarga+diskonOngkir, data:v};
+  _VOUCHERS.push(entry);
+  // Legacy compat
+  _VOUCHER=entry;
+
+  var isOngkir=isOngkirType(v.tipe);
+  var hematLabel=isOngkir
+    ? (ONGKIR===0?'(ongkir dihitung saat lokasi terdeteksi)':diskonOngkir>=ONGKIR?'🎉 Gratis ongkir!':'Hemat ongkir '+fmt(diskonOngkir))
+    : 'Hemat '+fmt(diskonHarga);
+
+  showStatus('✅ Voucher <b>'+kode+'</b> ditambahkan! '+hematLabel+(v.ket?' <span style="opacity:.7">('+v.ket+')</span>':''),'ok');
+  if(g('inp-voucher')) g('inp-voucher').value='';
+  renderVoucherAppliedList();
+  updateTotals();
+
+  function showStatus(html, type){
+    statusEl.style.display='block';
+    statusEl.style.color=type==='err'?'var(--red-dk)':type==='warn'?'var(--amber-dk)':'var(--green-dk)';
+    statusEl.innerHTML=html;
+    if(type!=='ok') setTimeout(function(){statusEl.style.display='none';},3500);
+  }
+}
+
 function clearVoucher(){
-  _VOUCHER=null;
+  _VOUCHER=null; _VOUCHERS=[];
   var inp=g('inp-voucher'); if(inp) inp.value='';
   var statusEl=g('voucher-status'); if(statusEl) statusEl.style.display='none';
-  // Reset tampilan ongkir ke nilai normal
   var ongkirEl=g('tot-ongkir'); if(ongkirEl) ongkirEl.textContent=fmt(ONGKIR);
+  renderVoucherAppliedList();
   updateTotals();
 }
 
@@ -1159,9 +1199,11 @@ async function submitOrder(){
   try{
     var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0);
     var svcAmt=calcService(sub);
-    var vDiskon=_VOUCHER?(_VOUCHER.diskon||0):0;            // potongan harga
-    var vDiskonOngkirAmt=_VOUCHER?(_VOUCHER.diskonOngkir||0):0; // potongan ongkir
-    var vKode=_VOUCHER?_VOUCHER.kode:null;
+    var vDiskon=0, vDiskonOngkirAmt=0;
+    var vKode=(_VOUCHERS||[]).map(function(v){return v.kode;}).join(',') || null;
+    (_VOUCHERS||[]).forEach(function(v){
+      vDiskon+=v.diskon||0; vDiskonOngkirAmt+=v.diskonOngkir||0;
+    });
     var ongkirFinal=Math.max(0, ONGKIR-vDiskonOngkirAmt);
     var total=Math.max(0, sub+ongkirFinal+svcAmt-vDiskon);
     var code='ORD-'+Date.now().toString(36).toUpperCase();
