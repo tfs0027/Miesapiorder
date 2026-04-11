@@ -876,19 +876,38 @@ function updateTotals(){
   var svcNm=cfg?cfg.serviceNama||'Biaya Layanan':'Biaya Layanan';
   // Voucher discount
   var _v=(typeof _VOUCHER!=='undefined')?_VOUCHER:null;
-  var vDiskon=_v?_v.diskon:0;
-  var vNm=_v?'Voucher '+_v.kode:'Voucher';
-  var total=Math.max(0, sub+ONGKIR+svc-vDiskon);
+  var vDiskonHarga  = _v ? (_v.diskon||0) : 0;
+  var vDiskonOngkir = _v ? (_v.diskonOngkir||0) : 0;
+  var vNm = _v ? 'Voucher '+_v.kode : 'Voucher';
+
+  // Ongkir setelah voucher ongkir
+  var ongkirFinal = Math.max(0, ONGKIR - vDiskonOngkir);
+  var total = Math.max(0, sub + ongkirFinal + svc - vDiskonHarga);
+
   g('tot-sub').textContent=fmt(sub);
-  g('tot-ongkir').textContent=fmt(ONGKIR);
-  var ongkirRow=g('tot-ongkir')?g('tot-ongkir').parentElement:null;
+
+  // Tampilan ongkir: jika ada diskon ongkir, tampilkan ongkir coret + setelah diskon
+  var ongkirEl = g('tot-ongkir');
+  if (ongkirEl) {
+    if(vDiskonOngkir>0 && ONGKIR>0){
+      ongkirEl.innerHTML = '<span style="text-decoration:line-through;color:var(--txt3);font-size:11px">'+fmt(ONGKIR)+'</span> <span style="color:var(--green-dk);font-weight:700">'+fmt(ongkirFinal)+'</span>';
+    } else {
+      ongkirEl.textContent = fmt(ONGKIR);
+    }
+  }
+  var ongkirRow = g('tot-ongkir') ? g('tot-ongkir').closest('div') || g('tot-ongkir').parentElement : null;
   if(ongkirRow) ongkirRow.style.display=ORDER_METHOD==='pickup'?'none':'';
+
   var svcRow=g('tot-svc-row'); if(svcRow) svcRow.style.display=svc>0?'':'none';
   var svcEl=g('tot-svc'); if(svcEl) svcEl.textContent=fmt(svc);
   var svcNmEl=g('tot-svc-nm'); if(svcNmEl) svcNmEl.textContent=svcNm;
-  var vRow=g('tot-voucher-row'); if(vRow) vRow.style.display=vDiskon>0?'':'none';
-  var vEl=g('tot-voucher'); if(vEl) vEl.textContent='-'+fmt(vDiskon);
+
+  // Baris voucher potongan harga
+  var vRow=g('tot-voucher-row');
+  if(vRow) vRow.style.display=vDiskonHarga>0?'':'none';
+  var vEl=g('tot-voucher'); if(vEl) vEl.textContent='-'+fmt(vDiskonHarga);
   var vNmEl=g('tot-voucher-nm'); if(vNmEl) vNmEl.textContent=vNm;
+
   g('tot-total').textContent=fmt(total);
 }
 
@@ -987,18 +1006,41 @@ function applyVoucher(){
     _VOUCHER=null; updateTotals(); return;
   }
   var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0);
-  var diskon=0;
-  if(v.tipe==='flat'){
-    diskon=v.nilai||0;
-  } else {
-    diskon=Math.round(sub*(v.nilai||0)/100);
-    if(v.maksNominal>0) diskon=Math.min(diskon, v.maksNominal);
+  var diskonHarga=0, diskonOngkir=0;
+
+  // Voucher ongkir tidak berlaku untuk pickup
+  if(v.tipe==='ongkir' && ORDER_METHOD==='pickup'){
+    statusEl.style.display='block';
+    statusEl.style.color='var(--amber-dk)';
+    statusEl.innerHTML='⚠️ Voucher ini hanya untuk pengiriman, bukan ambil sendiri.';
+    _VOUCHER=null; updateTotals(); return;
   }
-  diskon=Math.min(diskon, sub); // jangan melebihi subtotal
-  _VOUCHER={kode:kode, diskon:diskon, data:v};
+  if(v.tipe==='ongkir'){
+    // Potongan ongkir: nilai=100 berarti gratis ongkir, nilai<100 berarti potongan %
+    if(v.nilai>=100){
+      diskonOngkir=ONGKIR; // gratis ongkir
+    } else {
+      diskonOngkir=Math.round(ONGKIR*(v.nilai||0)/100);
+    }
+    diskonOngkir=Math.min(diskonOngkir, ONGKIR); // tidak melebihi ongkir
+  } else if(v.tipe==='flat'){
+    diskonHarga=v.nilai||0;
+    diskonHarga=Math.min(diskonHarga, sub);
+  } else { // pct
+    diskonHarga=Math.round(sub*(v.nilai||0)/100);
+    if(v.maksNominal>0) diskonHarga=Math.min(diskonHarga, v.maksNominal);
+    diskonHarga=Math.min(diskonHarga, sub);
+  }
+
+  var totalDiskon=diskonHarga+diskonOngkir;
+  _VOUCHER={kode:kode, diskon:diskonHarga, diskonOngkir:diskonOngkir, totalDiskon:totalDiskon, data:v};
+
   statusEl.style.display='block';
   statusEl.style.color='var(--green-dk)';
-  statusEl.innerHTML='✅ Voucher <b>'+kode+'</b> berhasil! Hemat <b>'+fmt(diskon)+'</b>'
+  var hematLabel = v.tipe==='ongkir'
+    ? (diskonOngkir>=ONGKIR&&ONGKIR>0 ? 'Gratis ongkir!' : 'Ongkir hemat <b>'+fmt(diskonOngkir)+'</b>')
+    : 'Hemat <b>'+fmt(diskonHarga)+'</b>';
+  statusEl.innerHTML='✅ Voucher <b>'+kode+'</b> berhasil! '+hematLabel
     +(v.ket?' <span style="opacity:.7">('+v.ket+')</span>':'')
     +' <span onclick="clearVoucher()" style="cursor:pointer;margin-left:6px;text-decoration:underline;color:var(--red-dk);font-size:10px">Hapus</span>';
   updateTotals();
@@ -1008,6 +1050,8 @@ function clearVoucher(){
   _VOUCHER=null;
   var inp=g('inp-voucher'); if(inp) inp.value='';
   var statusEl=g('voucher-status'); if(statusEl) statusEl.style.display='none';
+  // Reset tampilan ongkir ke nilai normal
+  var ongkirEl=g('tot-ongkir'); if(ongkirEl) ongkirEl.textContent=fmt(ONGKIR);
   updateTotals();
 }
 
@@ -1086,9 +1130,11 @@ async function submitOrder(){
   try{
     var sub=CART.reduce(function(a,c){return a+c.harga*c.qty;},0);
     var svcAmt=calcService(sub);
-    var vDiskon=_VOUCHER?_VOUCHER.diskon:0;
+    var vDiskon=_VOUCHER?(_VOUCHER.diskon||0):0;            // potongan harga
+    var vDiskonOngkirAmt=_VOUCHER?(_VOUCHER.diskonOngkir||0):0; // potongan ongkir
     var vKode=_VOUCHER?_VOUCHER.kode:null;
-    var total=Math.max(0, sub+ONGKIR+svcAmt-vDiskon);
+    var ongkirFinal=Math.max(0, ONGKIR-vDiskonOngkirAmt);
+    var total=Math.max(0, sub+ongkirFinal+svcAmt-vDiskon);
     var code='ORD-'+Date.now().toString(36).toUpperCase();
 
         var addrLat=ORDER_METHOD==='delivery'?USER_LAT:null;
@@ -1096,7 +1142,7 @@ async function submitOrder(){
     var addrStr=alamat||(addrLat?(addrLat.toFixed(5)+','+addrLng.toFixed(5)):(ORDER_METHOD==='pickup'?'Ambil sendiri di warung':''));
     var aRes=await _sb.from('delivery_addresses').insert({nama_penerima:nama,alamat_lengkap:addrStr,lat:addrLat,lng:addrLng,catatan:(ORDER_METHOD==='pickup'?'[PICKUP] ':'')+g('inp-catatan').value.trim()}).select('id');
     if(aRes.error) throw aRes.error;
-    var oRes=await _sb.from('online_orders').insert({restaurant_id:RESTAURANT_ID,delivery_addr_id:aRes.data[0].id,order_code:code,nama_pemesan:nama,hp_pemesan:hp,subtotal:sub,ongkir:ONGKIR,service_fee:svcAmt,diskon_voucher:vDiskon,kode_voucher:vKode,total:total,pay_method:PAY,pay_status:PAY==='cod'?'pending':'paid',bukti_bayar_url:PROOF_BASE64||null,status:'pending',items_snapshot:CART.map(function(c){return {menu_id:c.id,nama:c.nama+(c.varLabel?' ('+c.varLabel+')':''),harga:c.harga,qty:c.qty,note:c.note||'',varLabel:c.varLabel||''};}),catatan:(ORDER_METHOD==='pickup'?'[PICKUP] ':'')+g('inp-catatan').value.trim()}).select('id');
+    var oRes=await _sb.from('online_orders').insert({restaurant_id:RESTAURANT_ID,delivery_addr_id:aRes.data[0].id,order_code:code,nama_pemesan:nama,hp_pemesan:hp,subtotal:sub,ongkir:ongkirFinal,service_fee:svcAmt,diskon_voucher:vDiskon,kode_voucher:vKode,total:total,pay_method:PAY,pay_status:PAY==='cod'?'pending':'paid',bukti_bayar_url:PROOF_BASE64||null,status:'pending',items_snapshot:CART.map(function(c){return {menu_id:c.id,nama:c.nama+(c.varLabel?' ('+c.varLabel+')':''),harga:c.harga,qty:c.qty,note:c.note||'',varLabel:c.varLabel||''};}),catatan:(ORDER_METHOD==='pickup'?'[PICKUP] ':'')+g('inp-catatan').value.trim()}).select('id');
     if(oRes.error) throw oRes.error;
     await _sb.from('order_status_log').insert({order_id:oRes.data[0].id,status:'pending',keterangan:'Pesanan masuk, menunggu konfirmasi warung',by_role:'customer'});
     // Update usedCount voucher di Supabase jika ada voucher terpakai
