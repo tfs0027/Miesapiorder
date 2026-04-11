@@ -874,11 +874,30 @@ function updateTotals(){
   // Service charge
   var svc=calcService(sub);
   var svcNm=cfg?cfg.serviceNama||'Biaya Layanan':'Biaya Layanan';
-  // Voucher discount
+  // Voucher discount — hitung ulang dari data voucher + ONGKIR saat ini
   var _v=(typeof _VOUCHER!=='undefined')?_VOUCHER:null;
-  var vDiskonHarga  = _v ? (_v.diskon||0) : 0;
-  var vDiskonOngkir = _v ? (_v.diskonOngkir||0) : 0;
   var vNm = _v ? 'Voucher '+_v.kode : 'Voucher';
+  var vDiskonHarga  = 0;
+  var vDiskonOngkir = 0;
+
+  if (_v && _v.data) {
+    var vd = _v.data;
+    if (vd.tipe === 'ongkir') {
+      // Recalculate setiap updateTotals karena ONGKIR bisa berubah (setelah GPS)
+      vDiskonOngkir = vd.nilai >= 100 ? ONGKIR : Math.round(ONGKIR * (vd.nilai||0) / 100);
+      vDiskonOngkir = Math.min(vDiskonOngkir, ONGKIR);
+      // Update di _VOUCHER agar submitOrder juga dapat nilai terbaru
+      _v.diskonOngkir = vDiskonOngkir;
+    } else if (vd.tipe === 'flat') {
+      vDiskonHarga = vd.nilai || 0;
+      vDiskonHarga = Math.min(vDiskonHarga, sub);
+    } else { // pct
+      vDiskonHarga = Math.round(sub * (vd.nilai||0) / 100);
+      if (vd.maksNominal > 0) vDiskonHarga = Math.min(vDiskonHarga, vd.maksNominal);
+      vDiskonHarga = Math.min(vDiskonHarga, sub);
+    }
+    _v.diskon = vDiskonHarga; // update juga diskon harga
+  }
 
   // Ongkir setelah voucher ongkir
   var ongkirFinal = Math.max(0, ONGKIR - vDiskonOngkir);
@@ -1014,6 +1033,16 @@ function applyVoucher(){
     statusEl.style.color='var(--amber-dk)';
     statusEl.innerHTML='⚠️ Voucher ini hanya untuk pengiriman, bukan ambil sendiri.';
     _VOUCHER=null; updateTotals(); return;
+  }
+  if(v.tipe==='ongkir' && ONGKIR===0){
+    // Ongkir belum dihitung (GPS belum dideteksi) — simpan voucher dulu, diskon akan dihitung saat ongkir tersedia
+    _VOUCHER={kode:kode, diskon:0, diskonOngkir:0, totalDiskon:0, data:v};
+    statusEl.style.display='block';
+    statusEl.style.color='var(--blue-dk)';
+    statusEl.innerHTML='✅ Voucher <b>'+kode+'</b> tersimpan! Diskon ongkir akan dihitung setelah kamu deteksi lokasi.'
+      +(v.ket?' <span style="opacity:.7">('+v.ket+')</span>':'')
+      +' <span onclick="clearVoucher()" style="cursor:pointer;margin-left:6px;text-decoration:underline;color:var(--red-dk);font-size:10px">Hapus</span>';
+    updateTotals(); return;
   }
   if(v.tipe==='ongkir'){
     // Potongan ongkir: nilai=100 berarti gratis ongkir, nilai<100 berarti potongan %
