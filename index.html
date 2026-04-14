@@ -167,8 +167,10 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .var-required{font-size:9px;background:#FEE2E2;color:#991B1B;padding:2px 6px;border-radius:10px;font-weight:700}
 .var-optional{font-size:9px;background:var(--bg);color:var(--txt3);padding:2px 6px;border-radius:10px}
 .var-choices{display:flex;flex-wrap:wrap;gap:7px}
-.var-chip{padding:7px 14px;border:1.5px solid var(--brd);border-radius:50px;font-size:12px;font-weight:600;cursor:pointer;color:var(--txt2);transition:all .15s}
+.var-chip{padding:7px 14px;border:1.5px solid var(--brd2);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;color:var(--txt);transition:all .15s;background:var(--bg);display:inline-flex;align-items:center;gap:4px;user-select:none}
+.var-chip:hover{border-color:var(--accent);color:var(--accent)}
 .var-chip.selected{background:var(--accent);border-color:var(--accent);color:#fff}
+.var-chip.selected span{color:#fff!important;opacity:1!important}
 .var-qty-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--brd);margin-top:8px}
 .var-qty-ctrl{display:flex;align-items:center;gap:12px}
 .var-qty-btn{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--brd);background:var(--bg2);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center}
@@ -767,7 +769,24 @@ async function loadMenus(){
   if(res.error) throw res.error;
   // Sort: items with urutan=0 go last, others sort ascending
   // Menu 'out' tetap tampil tapi disabled/greyed — urutkan ke bawah
-  MENUS=(res.data||[]).sort(function(a,b){
+  // Normalize opts dari Supabase (bisa berupa JSON string atau array)
+  var rawMenus = (res.data||[]).map(function(m) {
+    if (m.opts && typeof m.opts === 'string') {
+      try { m.opts = JSON.parse(m.opts); } catch(e) { m.opts = []; }
+    }
+    if (!Array.isArray(m.opts)) m.opts = [];
+    // Normalize choices: bisa string atau objek {label, price}
+    m.opts = m.opts.map(function(grp) {
+      return Object.assign({}, grp, {
+        choices: (grp.choices||grp.pilihan||[]).map(function(ch) {
+          if (typeof ch === 'object' && ch !== null) return ch;
+          return { label: String(ch||''), price: 0 };
+        })
+      });
+    });
+    return m;
+  });
+  MENUS=rawMenus.sort(function(a,b){
     // Status out ke paling bawah
     if (a.status==='out' && b.status!=='out') return 1;
     if (a.status!=='out' && b.status==='out') return -1;
@@ -802,7 +821,11 @@ function renderGrid(cat){
         ? '<img class="menu-img" src="'+m.foto_url+'" loading="lazy">'
         : '<div class="menu-emoji">'+(m.emoji||'🍽️')+'</div>')+
       (isOut?'<div class="menu-out-badge">Habis</div>':'')+
-      '<div class="menu-body"><div class="menu-cat">'+(m.kategori||m.cat||'Menu')+'</div><div class="menu-name">'+m.nama+'</div><div class="menu-price">'+fmt(m.harga)+'</div></div>'+
+      (m.opts&&m.opts.length?'<div style="position:absolute;top:6px;left:6px;background:var(--accent);color:#fff;font-size:9px;padding:1px 6px;border-radius:10px;font-weight:700">'+m.opts.length+' varian</div>':'')+
+      '<div class="menu-body"><div class="menu-cat">'+(m.kategori||m.cat||'Menu')+'</div><div class="menu-name">'+m.nama+'</div>'+
+      (m.opts&&m.opts.length?'<div style="font-size:9px;color:var(--txt3);margin-top:1px">Tap untuk pilih varian</div>':'')+
+      '<div class="menu-price">'+fmt(m.harga)+(m.opts&&m.opts.length?'<span style="font-size:9px;color:var(--txt3)"> mulai</span>':'')+
+      '</div></div>'+
       (!isOut?'<div class="card-qty'+(qty>0?' show':'')+'"><button class="cq-btn cq-minus">−</button><span class="cq-num">'+qty+'</span><button class="cq-btn cq-plus">+</button></div><button class="btn-add" style="'+(qty>0?'display:none':'')+'">+</button>':'');
 
     if(!isOut){
@@ -820,7 +843,7 @@ function renderGrid(cat){
         else{cardQty.classList.remove('show');addBtn.style.display='';}
         updateBadge(); updateTotals();
       }
-      var hasOpts = menu.opts && Array.isArray(menu.opts) && menu.opts.length > 0;
+      var hasOpts = Array.isArray(menu.opts) && menu.opts.length > 0;
       addBtn.addEventListener('click',function(e){
         e.stopPropagation();
         if(hasOpts) openVarModal(menu, refreshCard);
@@ -1405,16 +1428,20 @@ function openVarModal(menu, cb) {
     var choicesEl = div.querySelector('#var-grp-'+gi);
     var choices = grp.choices||grp.pilihan||[];
     choices.forEach(function(ch, ci) {
+      // Setelah normalisasi di loadMenus, ch selalu {label, price}
+      var chLabel = ch.label || '';
+      var chPrice = ch.price || 0;
+
       var chip = document.createElement('div'); chip.className = 'var-chip';
-      // Parse extra price from choice label e.g. "Jumbo (+Rp 5.000)"
-      var extraMatch = ch.match(/\(\+Rp\s*([\d.,]+)\)/);
-      var extraPrice = extraMatch ? parseInt(extraMatch[1].replace(/[.,]/g,''))||0 : 0;
-      chip.textContent = ch;
+      var priceTag = chPrice > 0
+        ? '<span style="font-size:10px;color:var(--accent);margin-left:4px;opacity:.85">+'+fmt(chPrice)+'</span>'
+        : (chPrice < 0 ? '<span style="font-size:10px;color:#00b894;margin-left:4px;opacity:.85">'+fmt(chPrice)+'</span>' : '');
+      chip.innerHTML = '<span>' + chLabel + '</span>' + priceTag;
+
       chip.addEventListener('click', function() {
-        // Single select per group
         choicesEl.querySelectorAll('.var-chip').forEach(function(c){c.classList.remove('selected');});
         chip.classList.add('selected');
-        _varSelections[gi] = {label:ch, extra:extraPrice};
+        _varSelections[gi] = {label: chLabel, extra: chPrice};
         updateVarTotal();
       });
       choicesEl.appendChild(chip);
