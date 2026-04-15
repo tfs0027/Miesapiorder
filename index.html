@@ -881,7 +881,7 @@ function addItem(m){
   var ex=CART.find(function(c){return c.id===m.id;});
   if(ex)ex.qty++;
   else CART.push({id:m.id,nama:m.nama,harga:m.harga,emoji:m.emoji||'🍽️',foto_url:m.foto_url||'',qty:1,note:''});
-  toast(m.nama+' ditambahkan');
+  toast(escHtml(m.nama)+' ditambahkan');
 }
 function removeItem(id){ var i=CART.findIndex(function(c){return c.id===id;}); if(i<0)return; CART[i].qty--; if(CART[i].qty<=0)CART.splice(i,1); }
 function updateBadge(){
